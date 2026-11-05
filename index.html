@@ -20,12 +20,16 @@
 
   <!-- 客席側（奥） -->
   <section id="shop">
-    <div id="menuboard">
-      <div class="mb-title">お品書き</div>
+    <!-- 昭和の中華屋の壁：短冊メニュー・時計・日めくり・貼り紙 -->
+    <div id="wall">
+      <div class="menu-rail"></div>
       <div id="menulist"></div>
+      <div class="wall-clock" aria-hidden="true"><div class="hand h"></div><div class="hand m"></div></div>
+      <div class="himekuri" aria-hidden="true"><div class="hm-top">昭和</div><div class="hm-day">5</div><div class="hm-week">土曜日</div></div>
+      <div class="harigami" aria-hidden="true">冷やし中華<br>はじめました</div>
     </div>
     <div id="entrance">
-      <div class="noren"><span>ら</span><span>ー</span><span>めん</span></div>
+      <div class="noren"><span>中</span><span>華</span><span>そ</span><span>ば</span></div>
       <div id="queue"></div>
     </div>
     <div id="cups"></div>
@@ -37,15 +41,12 @@
   <section id="kitchen">
     <div id="toast"></div>
     <div class="k-block boiler-block">
-      <div class="k-label">茹で鍋</div>
       <div id="boilers"></div>
     </div>
     <div class="k-block bowl-block">
-      <div class="k-label">どんぶり（タップでスープ → 麺 → 具 → お客さんをタップで出す）</div>
       <div id="bowlArea"></div>
     </div>
     <div class="k-block side-block">
-      <div class="k-label">具材（タップでどんぶりへ）</div>
       <div id="ingredients"></div>
     </div>
   </section>

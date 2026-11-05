@@ -577,6 +577,13 @@ function binSVG(key) {
   </svg>`;
 }
 
+// 1250 → 千二百五拾円
+function kanjiYen(n) {
+  const d = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+  const th = Math.floor(n / 1000), hu = Math.floor(n / 100) % 10, te = Math.floor(n / 10) % 10;
+  return (th ? (th > 1 ? d[th] : '') + '千' : '') + (hu ? (hu > 1 ? d[hu] : '') + '百' : '') + (te ? d[te] + '拾' : '') + '円';
+}
+
 function recipeText(rec) {
   const names = TOPPINGS.filter((t) => rec[t.key]).map((t) => t.name);
   return names.length ? names.join('・') + 'を1タップ' : 'そのまま';
@@ -584,16 +591,16 @@ function recipeText(rec) {
 
 function buildUI() {
   // お品書き
+  // 壁に貼った短冊メニュー（縦書き、値段は漢数字）
   $('menulist').innerHTML = Object.values(MENU).map((m) =>
-    `<div class="mb-row"><span>${m.name}</span><span>${yen(m.price)}</span></div>
-     <div class="mb-row"><small>${recipeText(m.rec)}</small></div>`).join('');
+    `<div class="tanzaku"><span class="t-name">${m.name}</span><span class="t-price">${kanjiYen(m.price)}</span></div>`).join('');
 
   // 席
   const seats = $('seats');
   for (let i = 0; i < SEAT_COUNT; i++) {
     const root = document.createElement('div');
     root.className = 'seat';
-    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div><div class="served-spot"></div><div class="glass"><div class="wlvl"></div><div class="ice"></div></div>';
+    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div><div class="seat-no">' + (i + 1) + '</div><div class="served-spot"></div><div class="glass"><div class="wlvl"></div><div class="ice"></div></div>';
     root.addEventListener('pointerdown', () => tapCustomer(i));
     root.querySelector('.glass').addEventListener('pointerdown', (ev) => { ev.stopPropagation(); tapGlass(i); });
     seats.appendChild(root);
@@ -606,7 +613,7 @@ function buildUI() {
   pot.className = 'pot';
   pot.innerHTML = `<div class="pot-ctrl"><div class="ctrl-panel"><div class="dial"></div><div class="lamp"></div></div></div>
     <div class="tebos"></div>
-    <div class="pot-hint">穴をタップで麺を入れる [Q]<br>ピピッ！のてぼをタップで出す [W]</div>`;
+    `;
   pot.addEventListener('pointerdown', () => addNoodle());
   $('boilers').appendChild(pot);
   const tebos = pot.querySelector('.tebos');
@@ -631,13 +638,13 @@ function buildUI() {
   for (let i = 0; i < SEAT_COUNT; i++) {
     const slot = document.createElement('div');
     slot.className = 'bowl-slot';
-    slot.innerHTML = `<div class="bowl-who"></div>
+    slot.innerHTML = `<div class="slip"></div>
       <div class="bowl-wrap"><div class="bowl"><div class="soup"></div><div class="men"></div><div class="tops"></div></div></div>
-      <div class="bowl-info"></div>`;
+      `;
     slot.addEventListener('pointerdown', () => tapBowl(i));
     area.appendChild(slot);
-    bowlEls.push({ slot, who: slot.querySelector('.bowl-who'), bowl: slot.querySelector('.bowl'), wrap: slot.querySelector('.bowl-wrap'),
-      tops: slot.querySelector('.tops'), info: slot.querySelector('.bowl-info'), key: '' });
+    bowlEls.push({ slot, slip: slot.querySelector('.slip'), bowl: slot.querySelector('.bowl'), wrap: slot.querySelector('.bowl-wrap'),
+      tops: slot.querySelector('.tops'), key: '' });
   }
 
 
@@ -650,7 +657,8 @@ function buildUI() {
     const el = document.createElement('div');
     el.className = 'bin';
     el.dataset.key = t.key;
-    el.innerHTML = `${binSVG(t.key)}<div class="bin-name">${t.name}<span class="key">[${t.hotkey}]</span></div>`;
+    el.title = t.name;
+    el.innerHTML = binSVG(t.key);
     el.addEventListener('pointerdown', () => addTopping(t.key));
     ing.appendChild(el);
     binEls[t.key] = el;
@@ -660,7 +668,8 @@ function buildUI() {
   }
   // コップはカウンターの左側
   waterEl = $('cups');
-  waterEl.innerHTML = '<div class="cup-stack">🥛🥛<br>🥛🥛🥛</div><div class="cup-label">水を出す<span class="key">[G]</span></div>';
+  waterEl.title = 'お冷';
+  waterEl.innerHTML = '<div class="tray"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>';
   waterEl.addEventListener('pointerdown', pickWater);
 }
 
@@ -719,9 +728,8 @@ function render() {
         const head = flash ? `<div class="react bad">${flash}</div>`
           : c.state === 'hot' ? `<div class="react bad">${c.react}</div>` : '';
         const body = c.state === 'hot'
-          ? '<div class="bubble">💧 お水まだ？<div class="pbar"><div></div></div></div>'
-          : `<div class="bubble">${m.name}<div class="rec">${recipeText(m.rec)}</div>
-            ${c.water ? '' : c.glass ? '<div class="nowater">💧おかわり！</div>' : '<div class="nowater">💧お水まだ</div>'}<div class="pbar"><div></div></div></div>`;
+          ? '<div class="bubble">💧<div class="pbar"><div></div></div></div>'
+          : `<div class="bubble">${m.name}${c.water ? '' : '<span class="nowater">💧</span>'}<div class="pbar"><div></div></div></div>`;
         e.top.innerHTML = head + body;
       } else {
         e.top.innerHTML = `<div class="react ${c.reactCls}">${c.react}</div>`;
@@ -766,8 +774,9 @@ function render() {
     e.key = key;
     e.slot.classList.toggle('empty', !b);
     e.slot.classList.toggle('active', !!b && i === S.active);
-    if (!b) { e.who.textContent = ''; e.info.textContent = ''; e.tops.innerHTML = ''; continue; }
-    e.who.textContent = c ? `${c.face} ${MENU[c.order].name}` : '';
+    if (!b) { e.slip.innerHTML = ''; e.tops.innerHTML = ''; continue; }
+    // 伝票（席番号と注文）
+    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm">${MENU[c.order].name}</span>` : '';
     e.bowl.classList.toggle('has-soup', b.soup);
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
@@ -778,9 +787,6 @@ function render() {
       }
     }
     e.tops.innerHTML = html;
-    e.info.innerHTML = !b.soup ? 'タップでスープ'
-      : !b.men || b.menFly ? 'スープ入り<br>麺を待っています'
-      : (TOPPINGS.filter((t) => b.tops[t.key]).map((t) => t.name).join('・') || '麺入り');
   }
 }
 
