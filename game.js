@@ -134,6 +134,49 @@ const sfx = {
   trash: () => beep(200, 0.15, 'sawtooth', 0.05),
   bad:   () => beep(140, 0.25, 'sawtooth', 0.06),
   door:  () => beep(880, 0.06, 'sine', 0.04),
+
+  // ---- お客さんの反応 ----
+  // 早くてうまい！：明るいファンファーレ＋キラキラ＋小銭の音
+  great: () => {
+    const notes = [[784, 0], [988, 90], [1175, 180], [1568, 270]];
+    for (const [f, t] of notes) setTimeout(() => { beep(f, 0.14, 'triangle', 0.09); beep(f * 2, 0.1, 'sine', 0.025); }, t);
+    setTimeout(() => { beep(1568, 0.5, 'triangle', 0.08); beep(1976, 0.5, 'sine', 0.05); beep(2349, 0.5, 'sine', 0.035); }, 380);
+    for (let k = 0; k < 6; k++) setTimeout(() => beep(2600 + Math.random() * 1600, 0.05, 'sine', 0.03), 420 + k * 55);
+    sfx.coins(560);
+  },
+  // うまい：やさしいチャイム＋小銭
+  good: () => {
+    beep(1046, 0.1, 'triangle', 0.08); setTimeout(() => beep(1318, 0.2, 'triangle', 0.08), 100);
+    sfx.coins(260);
+  },
+  // 待たされた：低く沈む「ん〜…」＋小銭（少しだけ）
+  meh: () => {
+    beep(392, 0.18, 'triangle', 0.07); setTimeout(() => beep(330, 0.3, 'triangle', 0.06), 170);
+    setTimeout(() => beep(1300, 0.06, 'sine', 0.03), 520);
+  },
+  // 注文とちがう：ブブーッ
+  wrong: () => { beep(150, 0.18, 'square', 0.06); setTimeout(() => beep(150, 0.3, 'square', 0.06), 230); },
+  // 熱っ！：ぴょこっと上がる声
+  hot: () => {
+    try {
+      const a = getAudio(); if (!a) return;
+      const o = a.createOscillator(), gn = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(600, a.currentTime); o.frequency.exponentialRampToValueAtTime(1500, a.currentTime + 0.15);
+      gn.gain.setValueAtTime(0.07, a.currentTime); gn.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.2);
+      o.connect(gn); gn.connect(a.destination); o.start(); o.stop(a.currentTime + 0.22);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // お水おかわり：ぽこぽこ
+  refill: () => { beep(700, 0.05, 'sine', 0.05); setTimeout(() => beep(950, 0.05, 'sine', 0.05), 80); setTimeout(() => beep(1200, 0.06, 'sine', 0.05), 160); },
+  // 怒って帰る：がっかりの下がる音
+  angry: () => {
+    const notes = [[392, 0], [370, 220], [349, 440], [330, 660]];
+    for (const [f, t] of notes) setTimeout(() => beep(f, t === 660 ? 0.5 : 0.2, 'sawtooth', 0.045), t);
+  },
+  // 小銭：チャリン
+  coins: (delay = 0) => {
+    setTimeout(() => { beep(2093, 0.08, 'square', 0.025); setTimeout(() => beep(2637, 0.18, 'square', 0.025), 70); }, delay);
+  },
 };
 
 // ===================== 客 =====================
@@ -386,7 +429,7 @@ function tapCustomer(seatIdx) {
     c.pat = Math.min(c.patMax * 0.95, c.pat + c.patMax * 0.2);
     S.rep -= 0.2;
     c.flash = 'ちがうよ！😠'; c.flashT = 1.5;
-    sfx.bad();
+    sfx.wrong();
     return;
   }
 
@@ -396,7 +439,7 @@ function tapCustomer(seatIdx) {
   else {
     c.state = 'hot';
     c.react = '熱っ！お水ください💧'; c.reactCls = 'bad';
-    sfx.tap();
+    sfx.hot();
   }
 }
 
@@ -419,10 +462,13 @@ function startEating(seatIdx, c) {
   if (patRatio >= 0.5) {
     tip = Math.round((100 + 200 * patRatio) / 10) * 10;
     react = 'うまい！早い！😋'; rep = 0.15; S.perfect++;
+    sfx.great();
   } else if (patRatio >= 0.2) {
     react = 'うまい🙂'; rep = 0.07;
+    sfx.good();
   } else {
     react = '待たされた…😐'; rep = -0.03;
+    sfx.meh();
   }
   S.rep += rep;
   S.money += pay + tip;
@@ -431,7 +477,6 @@ function startEating(seatIdx, c) {
   c.state = 'eating'; c.timer = EAT_TIME;
   c.react = react; c.reactCls = rep > 0 ? 'good' : 'bad';
   showCoin(seatIdx, '+' + yen(pay + tip) + (tip ? '（チップ込）' : ''));
-  sfx.chime();
 }
 
 function showCoin(seatIdx, text) {
@@ -487,7 +532,7 @@ function update(dt) {
       if (c.waterLvl <= 0) {
         c.waterLvl = 0; c.water = false;
         c.flash = 'お水おかわり！💧'; c.flashT = 1.8;
-        sfx.door();
+        sfx.refill();
       }
     }
     if (c.state === 'waiting' || c.state === 'hot') {
@@ -502,7 +547,7 @@ function update(dt) {
         c.state = 'leaving'; c.timer = 2;
         c.react = 'もう帰る！💢'; c.reactCls = 'bad';
         S.rep -= 0.3; S.angry++;
-        sfx.bad();
+        sfx.angry();
       }
     } else {
       c.timer -= dt;
