@@ -522,7 +522,7 @@ function serveTo(seatIdx) {
   if (c.water) startEating(seatIdx, c);
   else {
     c.state = 'hot';
-    c.react = '熱っ！お水ください💧'; c.reactCls = 'bad';
+    c.react = '熱っ！お水💧'; c.reactCls = 'bad';
     sfx.hot();
   }
 }
