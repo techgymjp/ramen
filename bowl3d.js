@@ -971,6 +971,24 @@ const Bowl3D = (() => {
     return ramenUrl;
   }
 
+  // お客さんへ飛んでいくラーメン1杯の絵（具の有無ごと）
+  const bowlImgCache = {};
+  function bowlImage(chashu, negi) {
+    const k = (chashu ? 'c' : '') + (negi ? 'n' : '');
+    if (!bowlImgCache[k]) {
+      bowlImgCache[k] = snapshot(200, 150, (scene) => {
+        const s = makeScene(0);
+        s.scene.children.filter((o) => o.isLight).forEach((l) => s.scene.remove(l));
+        s.steam.forEach((sp) => { sp.visible = false; });
+        s.pour.visible = false;
+        s.chashu.forEach((m) => { m.visible = !!chashu; });
+        s.negi.forEach((m) => { m.visible = !!negi; m.position.y = m.userData.baseY + (chashu ? 0.12 : 0); });
+        scene.add(s.scene);
+      }, [0, 2.45, 2.7], [0, 0.38, 0], 40);
+    }
+    return bowlImgCache[k];
+  }
+
   const personCache = {};
   function person(idx, expr) {
     const k = idx + ':' + expr;
@@ -1118,6 +1136,6 @@ const Bowl3D = (() => {
     return kitchen.pieceScreenPos(slot, key, index, el);
   }
 
-  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos, person, personCount: PEOPLE.length, ramenImage };
+  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos, person, personCount: PEOPLE.length, ramenImage, bowlImage };
   return api;
 })();

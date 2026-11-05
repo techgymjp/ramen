@@ -442,6 +442,51 @@ function flyTopping(key, b, slot, index, land) {
 }
 
 // 客に出す（お冷を持っていれば水を出す）。出すのはそのお客さんの前のどんぶり
+// ラーメンができたか（注文どおり、または具の入れまちがい）を見て、自動で出す
+function autoServe(dt) {
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const b = S.bowls[i], c = S.seats[i];
+    if (!b || !c || c.state !== 'waiting' || b.serving) continue;
+    if (!b.men || b.menFly || b.fly.chashu || b.fly.negi) { b.readyT = 0; continue; }
+    const rec = MENU[c.order].rec;
+    const keys = Object.keys(rec);
+    const done = keys.every((k) => b.tops[k] === rec[k]);
+    const wrong = keys.some((k) => b.tops[k] > rec[k]);
+    if (!done && !wrong) { b.readyT = 0; continue; }
+    b.readyT = (b.readyT || 0) + dt;
+    serveFly(i, b);   // できた瞬間に飛んでいく
+  }
+}
+
+function serveFly(i, b) {
+  b.serving = true;
+  const from = bowlEls[i].wrap.getBoundingClientRect();
+  const to = seatEls[i].spot.getBoundingClientRect();
+  const img = Bowl3D.ok && Bowl3D.bowlImage ? Bowl3D.bowlImage(b.tops.chashu > 0, b.tops.negi > 0) : null;
+  const finish = () => {
+    if (el) el.remove();
+    if (S.bowls[i] === b) { b.serving = false; tapCustomer(i); }
+  };
+  let el = null;
+  if (!img || !document.body.animate) { finish(); return; }
+  el = document.createElement('img');
+  el.src = img; el.className = 'fly fly-bowl';
+  const w = from.width;
+  el.style.width = w + 'px';
+  document.body.appendChild(el);
+  beep(700, 0.06, 'triangle', 0.05);
+  const sx = from.left, sy = from.top + from.height / 2 - w * 0.375;
+  const sc = Math.max(0.3, to.width / w);
+  const ex = to.left + to.width / 2 - w / 2, ey = to.top + to.height / 2 - w * 0.375;
+  const top = Math.min(sy, ey) - 60;
+  const anim = el.animate([
+    { transform: `translate(${sx}px, ${sy}px) scale(1)` },
+    { transform: `translate(${(sx + ex) / 2}px, ${top}px) scale(${(1 + sc) / 2})`, offset: 0.5 },
+    { transform: `translate(${ex}px, ${ey}px) scale(${sc})` },
+  ], { duration: 550, easing: 'ease-in-out' });
+  anim.onfinish = finish; anim.oncancel = finish;
+}
+
 function tapCustomer(seatIdx) {
   const c = S.seats[seatIdx];
   if (!c) return;
@@ -550,6 +595,9 @@ function update(dt) {
       fixActive();
     }
   }
+
+  // できあがったラーメンは、自動でお客さんのところへ飛んでいく
+  autoServe(dt);
 
   // 席の客
   for (let i = 0; i < SEAT_COUNT; i++) {
@@ -908,7 +956,7 @@ function exprOf(c) {
 function render3D() {
   if (!Bowl3D.ok) return;
   const now = performance.now();
-  Bowl3D.draw(S.bowls, bowlEls.map((e) => e.wrap), now);
+  Bowl3D.draw(S.bowls.map((b) => (b && b.serving ? null : b)), bowlEls.map((e) => e.wrap), now);
   // お客さんに出したラーメン（熱くて待っている／食べている）
   Bowl3D.drawCounter(S.seats.map((c, i) => {
     if (!c || (c.state !== 'hot' && c.state !== 'eating')) return null;
@@ -1022,7 +1070,7 @@ function showHelp() {
       <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
       <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
       <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 1タップで1人前が、選んでいるどんぶりへ飛んでいく</li>
-      <li>🙋 <b>お客さんをタップ</b>すると、その人の前のどんぶりを出します</li>
+      <li>🙋 ラーメンができあがると、<b>自動でお客さんのところへ飛んでいきます</b></li>
     </ul>
     <h2>メニュー</h2>
     <table>${menuRows}</table>
