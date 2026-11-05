@@ -809,3 +809,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
   #seats { left: 14px !important; right: 0 !important; }
   .seat .glass { left: calc(50% - 32px) !important; }
 }
+
+/* お客さんへ飛んでいくコップ */
+.fly-glass { transform-origin: 50% 50%; filter: drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
+.seat.glass-flying .glass { visibility: hidden; }

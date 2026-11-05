@@ -161,6 +161,26 @@ const sfx = {
     } catch (e) { /* 音が出せなくても続行 */ }
   },
   water: () => beep(1500, 0.06, 'sine', 0.05),
+  // 氷がカランコロンと鳴る音（コップを出すとき）
+  ice: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const clink = (t, f, vol) => {
+        for (const [m, v] of [[1, 1], [2.76, 0.5], [5.4, 0.25]]) {   // 金属っぽくない、澄んだ倍音
+          const o = a.createOscillator(), gn = a.createGain();
+          o.type = 'sine'; o.frequency.value = f * m;
+          gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(vol * v, t + 0.003);
+          gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.25 / m + 0.08);
+          o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t + 0.4);
+        }
+      };
+      const t0 = a.currentTime;
+      clink(t0, 2300, 0.16);
+      clink(t0 + 0.09, 2900, 0.12);
+      clink(t0 + 0.2, 2550, 0.1);
+      clink(t0 + 0.27, 3300, 0.07);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   chime: () => { beep(1046, 0.1, 'triangle', 0.08); setTimeout(() => beep(1318, 0.18, 'triangle', 0.08), 90); },
   trash: () => beep(200, 0.15, 'sawtooth', 0.05),
   bad:   () => beep(140, 0.25, 'sawtooth', 0.06),
@@ -530,13 +550,43 @@ function serveTo(seatIdx) {
   }
 }
 
+// 水の入ったコップを、トレーからお客さんの前（左側）へ飛ばす
+function flyGlass(i) {
+  const e = seatEls[i];
+  const src = document.querySelector('#cups .c3d') || document.querySelector('#cups');
+  if (!e || !src || !document.body.animate) return;
+  const imgUrl = Bowl3D.images && Bowl3D.images.glass;
+  if (!imgUrl) return;
+  e.root.classList.add('glass-flying', 'has-water');   // 着くまで、席のコップは隠す（位置は測れるように表示扱い）
+  const from = src.getBoundingClientRect();
+  const to = e.root.querySelector('.glass').getBoundingClientRect();
+  const w = Math.max(from.width, 24), h = w * 1.4;
+  const el = document.createElement('img');
+  el.src = imgUrl; el.className = 'fly fly-glass';
+  el.style.width = w + 'px';
+  document.body.appendChild(el);
+  const scx = from.left + from.width / 2, scy = from.top + from.height / 2;
+  const ecx = to.left + to.width / 2, ecy = to.top + to.height / 2 - 4;
+  const sc = Math.max(0.5, to.height / h);
+  const peak = Math.min(scy, ecy) - 50;
+  const at = (cx, cy, s, r) => ({ transform: `translate(${cx - w / 2}px, ${cy - h / 2}px) scale(${s}) rotate(${r}deg)` });
+  const done = () => { el.remove(); e.root.classList.remove('glass-flying'); };
+  const anim = el.animate([
+    at(scx, scy, 1, 0),
+    { ...at((scx + ecx) / 2, peak, (1 + sc) / 2, -8), offset: 0.5 },
+    at(ecx, ecy, sc, 0),
+  ], { duration: 420, easing: 'ease-in-out' });
+  anim.onfinish = done; anim.oncancel = done;
+}
+
 function giveWater(c) {
   if (c.water || c.state === 'leaving') { toast('お水はもう出しています'); return; }
   if (!c.glass) c.patMax += WATER_BONUS;   // 最初の1杯で少し長く待ってくれる
   c.water = true;
   c.glass = true;
   c.waterLvl = 1;
-  sfx.water();
+  sfx.ice();
+  flyGlass(S.seats.indexOf(c));
   if (c.state === 'hot') startEating(S.seats.indexOf(c), c);
 }
 
