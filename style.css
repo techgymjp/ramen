@@ -169,7 +169,7 @@ body {
   gap: 8px;
 }
 .boiler-block { grid-area: pot; display: flex; flex-direction: column; }
-.bowl-block { grid-area: bowls; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.bowl-block { grid-area: bowls; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .side-block { grid-area: bins; display: flex; flex-direction: column; }
 .k-block {
   flex: 1;
@@ -301,7 +301,12 @@ body {
 @keyframes blink { 50% { opacity: .3; } }
 
 /* どんぶり（厨房正面、席ごと） */
-#bowlArea { width: 100%; display: flex; gap: 4px; justify-content: space-around; --bs: .8; }
+#bowlArea { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 4px; justify-items: center; --bs: 1.2; }
+.bowl-slot { width: 100%; }
+/* 3Dどんぶり */
+.bowl3d { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
+.three .bowl-wrap .bowl { visibility: hidden; }
+.three .bowl-who { position: relative; z-index: 2; }
 .bowl-slot {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
@@ -432,7 +437,7 @@ kbd { font-family: inherit; }
 @keyframes steam { 0% { transform: translate(-50%, 0); opacity: .6; } 100% { transform: translate(-50%, -14px); opacity: 0; } }
 
 @media (max-width: 900px) and (min-width: 641px) {
-  #bowlArea { --bs: .55; }
+  #bowlArea { --bs: .85; }
   #kitchen { grid-template-columns: 180px 1fr 140px; }
   #boilers { --hs: 54px; }
 }
@@ -445,7 +450,7 @@ kbd { font-family: inherit; }
   .seat { min-width: 0; width: 19%; }
   .cust { font-size: 36px; }
   .bubble { min-width: 0; font-size: 10px; padding: 2px 3px; }
-  #bowlArea { --bs: .5; gap: 1px; }
+  #bowlArea { --bs: .5; gap: 1px; display: flex; }
   .bowl-who { font-size: 9px; }
   .bowl-info { font-size: 8px; }
   #boilers { --hs: 46px; }

@@ -1,0 +1,329 @@
+'use strict';
+// =====================================================================
+// どんぶりの3D表示（Three.js）
+// 厨房正面のどんぶり置き場に1枚のキャンバスを重ね、
+// どんぶりごとにビューポートを切って描画する。
+// Three.js が読み込めないときは何もしない（2D表示のまま遊べる）。
+// =====================================================================
+const Bowl3D = (() => {
+  if (typeof THREE === 'undefined') return { ok: false };
+
+  const MAX_CHASHU = 4;
+  const MAX_NEGI = 3;
+  const SOUP_Y = 0.46;
+
+  let renderer, canvas, camera, host;
+  const scenes = [];   // 席ごとのシーン
+
+  // ---------- テクスチャ ----------
+  function canvasTex(w, h, draw) {
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4;
+    return t;
+  }
+
+  // どんぶりの外側：朱色に白い雷文の帯
+  const bowlOuterTex = canvasTex(1024, 256, (g, w, h) => {
+    g.fillStyle = '#9e1c17'; g.fillRect(0, 0, w, h);
+    const grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, '#0000'); grd.addColorStop(1, '#0005');
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    // 雷文の帯（上の方）
+    const top = 18, bh = 54;
+    g.fillStyle = '#f6efe2'; g.fillRect(0, top, w, bh);
+    g.strokeStyle = '#9e1c17'; g.lineWidth = 5;
+    const s = 44;
+    for (let x = 0; x < w; x += s + 8) {
+      const y = top + (bh - s) / 2;
+      g.beginPath();
+      g.moveTo(x, y + s); g.lineTo(x, y); g.lineTo(x + s, y); g.lineTo(x + s, y + s);
+      g.lineTo(x + 12, y + s); g.lineTo(x + 12, y + 12); g.lineTo(x + s - 12, y + 12);
+      g.lineTo(x + s - 12, y + s - 12); g.lineTo(x + 24, y + s - 12);
+      g.stroke();
+    }
+    g.fillStyle = '#7a1210'; g.fillRect(0, top - 4, w, 4); g.fillRect(0, top + bh, w, 4);
+  });
+
+  // チャーシューの断面：脂の渦巻き
+  const chashuTex = canvasTex(256, 256, (g, w) => {
+    const c = w / 2;
+    g.fillStyle = '#5e2a12'; g.beginPath(); g.arc(c, c, c, 0, Math.PI * 2); g.fill();
+    const meat = g.createRadialGradient(c, c, 10, c, c, c * 0.9);
+    meat.addColorStop(0, '#e7a68c'); meat.addColorStop(0.7, '#c97a5c'); meat.addColorStop(1, '#a4583a');
+    g.fillStyle = meat; g.beginPath(); g.arc(c, c, c * 0.88, 0, Math.PI * 2); g.fill();
+    // 脂の渦
+    g.strokeStyle = '#f8e2d2'; g.lineCap = 'round';
+    g.beginPath();
+    for (let a = 0; a < Math.PI * 7; a += 0.05) {
+      const r = 6 + a * 4.6;
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
+      a === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.lineWidth = 9; g.globalAlpha = 0.85; g.stroke();
+    g.globalAlpha = 1;
+    // 照り
+    const hi = g.createRadialGradient(c * 0.7, c * 0.6, 4, c * 0.7, c * 0.6, c * 0.6);
+    hi.addColorStop(0, '#ffffff55'); hi.addColorStop(1, '#fff0');
+    g.fillStyle = hi; g.beginPath(); g.arc(c, c, c * 0.88, 0, Math.PI * 2); g.fill();
+  });
+
+  // スープの表面：背脂と油の粒
+  const soupTex = canvasTex(512, 512, (g, w) => {
+    const c = w / 2;
+    const grd = g.createRadialGradient(c, c, 20, c, c, c);
+    grd.addColorStop(0, '#c77a3a'); grd.addColorStop(0.75, '#a95a22'); grd.addColorStop(1, '#7c3c14');
+    g.fillStyle = grd; g.fillRect(0, 0, w, w);
+    let seed = 3;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    for (let i = 0; i < 140; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.95;
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
+      const s = 2 + rnd() * 9;
+      g.fillStyle = `rgba(255, ${190 + rnd() * 50 | 0}, 90, ${0.35 + rnd() * 0.4})`;
+      g.beginPath(); g.ellipse(x, y, s, s * 0.8, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,230,.6)';
+      g.beginPath(); g.arc(x - s * 0.3, y - s * 0.3, s * 0.25, 0, Math.PI * 2); g.fill();
+    }
+  });
+
+  // 湯気
+  const steamTex = canvasTex(128, 128, (g, w) => {
+    const c = w / 2;
+    const grd = g.createRadialGradient(c, c, 0, c, c, c);
+    grd.addColorStop(0, 'rgba(255,255,255,.55)'); grd.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = grd; g.fillRect(0, 0, w, w);
+  });
+
+  // ---------- 形と素材（全どんぶりで共有） ----------
+  const V = (x, y) => new THREE.Vector2(x, y);
+  const outerGeo = new THREE.LatheGeometry(
+    [V(0.40, 0), V(0.46, 0.02), V(0.47, 0.06), V(0.62, 0.2), V(0.82, 0.42), V(0.96, 0.6), V(1.0, 0.66)], 64);
+  const innerGeo = new THREE.LatheGeometry(
+    [V(0.0, 0.1), V(0.36, 0.11), V(0.6, 0.27), V(0.8, 0.45), V(0.93, 0.6), V(0.97, 0.66)], 64);
+  const rimGeo = new THREE.TorusGeometry(0.985, 0.025, 10, 64);
+  const outerMat = new THREE.MeshStandardMaterial({ map: bowlOuterTex, roughness: 0.3, metalness: 0.05, side: THREE.FrontSide });
+  const innerMat = new THREE.MeshStandardMaterial({ color: 0xfbf7ee, roughness: 0.25, side: THREE.BackSide });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xf6efe2, roughness: 0.3 });
+
+  const soupGeo = new THREE.CircleGeometry(0.82, 48);
+  const soupMat = new THREE.MeshPhysicalMaterial
+    ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08 })
+    : new THREE.MeshStandardMaterial({ map: soupTex, roughness: 0.15 });
+
+  // 麺：ゆるく波打った太めの麺を山盛りに
+  const noodleMat = new THREE.MeshStandardMaterial({ color: 0xe0ad3c, roughness: 0.35 });
+  const noodleGeos = (() => {
+    let seed = 11;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const geos = [];
+    for (let n = 0; n < 30; n++) {
+      const pts = [];
+      const a0 = rnd() * Math.PI * 2;
+      let x = Math.cos(a0) * rnd() * 0.5, z = Math.sin(a0) * rnd() * 0.5;
+      let dir = rnd() * Math.PI * 2;
+      const lift = 0.015 + rnd() * 0.06;
+      for (let i = 0; i < 14; i++) {
+        dir += (rnd() - 0.5) * 1.3;
+        x += Math.cos(dir) * 0.09; z += Math.sin(dir) * 0.09;
+        const r = Math.hypot(x, z);
+        if (r > 0.66) { x *= 0.66 / r; z *= 0.66 / r; dir += Math.PI * 0.6; }
+        const dome = 0.08 * (1 - Math.min(1, Math.hypot(x, z) / 0.7));
+        pts.push(new THREE.Vector3(x, SOUP_Y + lift + dome + Math.sin(i * 1.7) * 0.012, z));
+      }
+      geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.026, 7, false));
+    }
+    return geos;
+  })();
+
+  // チャーシュー：側面は茶色、上面に断面テクスチャ
+  const chashuGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.05, 40);
+  const chashuMats = [
+    new THREE.MeshStandardMaterial({ color: 0x6b3218, roughness: 0.5 }),
+    new THREE.MeshStandardMaterial({ map: chashuTex, roughness: 0.35 }),
+    new THREE.MeshStandardMaterial({ map: chashuTex, roughness: 0.35 }),
+  ];
+  // 置き場所（奥側に立てかける）
+  const CHASHU_POS = [
+    { x: -0.36, z: -0.28, ry: 0.4 },
+    { x: 0.08, z: -0.42, ry: 0.0 },
+    { x: 0.44, z: -0.22, ry: -0.45 },
+    { x: -0.1, z: -0.08, ry: 0.15 },
+  ];
+
+  // ネギ：小口切りの輪
+  const negiGeo = new THREE.TorusGeometry(0.034, 0.012, 6, 14);
+  const negiMats = [
+    new THREE.MeshStandardMaterial({ color: 0x3f9b33, roughness: 0.4 }),
+    new THREE.MeshStandardMaterial({ color: 0x7cc24a, roughness: 0.4 }),
+    new THREE.MeshStandardMaterial({ color: 0xdff0b8, roughness: 0.4 }),
+  ];
+  const NEGI_POS = [
+    { x: 0.3, z: 0.32 },
+    { x: -0.3, z: 0.34 },
+    { x: 0.02, z: 0.18 },
+  ];
+
+  function negiClump(seedBase) {
+    let seed = seedBase;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const g = new THREE.Group();
+    for (let i = 0; i < 14; i++) {
+      const m = new THREE.Mesh(negiGeo, negiMats[i % 3]);
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * 0.14;
+      m.position.set(Math.cos(a) * r, (1 - r / 0.14) * 0.04 + rnd() * 0.015, Math.sin(a) * r);
+      m.rotation.set(-Math.PI / 2 + (rnd() - 0.5) * 0.9, (rnd() - 0.5) * 0.9, 0);
+      g.add(m);
+    }
+    return g;
+  }
+
+  // ---------- 1つのどんぶりのシーン ----------
+  function makeScene(slot) {
+    const scene = new THREE.Scene();
+    scene.add(new THREE.HemisphereLight(0xfff4e0, 0x5a4030, 0.5));
+    const key = new THREE.DirectionalLight(0xfff0d8, 0.85);
+    key.position.set(-1.5, 3, 2.2);
+    scene.add(key);
+    const rim = new THREE.PointLight(0xffd29a, 0.6, 6);
+    rim.position.set(1.4, 1.6, -1.2);
+    scene.add(rim);
+
+    const bowl = new THREE.Group();
+    bowl.add(new THREE.Mesh(outerGeo, outerMat));
+    bowl.add(new THREE.Mesh(innerGeo, innerMat));
+    const rimMesh = new THREE.Mesh(rimGeo, rimMat);
+    rimMesh.rotation.x = Math.PI / 2; rimMesh.position.y = 0.66;
+    bowl.add(rimMesh);
+    scene.add(bowl);
+
+    const soup = new THREE.Mesh(soupGeo, soupMat);
+    soup.rotation.x = -Math.PI / 2; soup.position.y = SOUP_Y;
+    scene.add(soup);
+
+    const noodles = new THREE.Group();
+    for (const g of noodleGeos) noodles.add(new THREE.Mesh(g, noodleMat));
+    scene.add(noodles);
+
+    const chashu = CHASHU_POS.map((p, i) => {
+      const m = new THREE.Mesh(chashuGeo, chashuMats);
+      m.position.set(p.x, SOUP_Y + 0.13 + i * 0.012, p.z);
+      m.rotation.set(0.62, p.ry, 0, 'YXZ');
+      scene.add(m);
+      return m;
+    });
+
+    const negi = NEGI_POS.map((p, i) => {
+      const g = negiClump(31 + i * 17 + slot);
+      g.position.set(p.x, SOUP_Y + 0.12, p.z);
+      scene.add(g);
+      return g;
+    });
+
+    const steam = [];
+    for (let i = 0; i < 4; i++) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: steamTex, transparent: true, depthWrite: false, opacity: 0 }));
+      sp.userData.phase = i / 4 + slot * 0.13;
+      sp.userData.x = (i % 2 ? 0.25 : -0.2) + (i - 1.5) * 0.06;
+      scene.add(sp);
+      steam.push(sp);
+    }
+    return { scene, soup, noodles, chashu, negi, steam };
+  }
+
+  // ---------- 公開API ----------
+  function init(hostEl, seatCount) {
+    host = hostEl;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch (e) {
+      return false;
+    }
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    renderer.setClearColor(0x000000, 0);
+    renderer.autoClear = false;
+    if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
+    for (const t of [bowlOuterTex, chashuTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
+    canvas = renderer.domElement;
+    canvas.className = 'bowl3d';
+    host.appendChild(canvas);
+    // 斜め上から見下ろす（どんぶりの側面の模様も見える角度）
+    camera = new THREE.PerspectiveCamera(40, 1, 0.1, 20);
+    camera.position.set(0, 1.85, 3.1);
+    camera.lookAt(0, 0.42, 0);
+    for (let i = 0; i < seatCount; i++) scenes.push(makeScene(i));
+    api.ok = true;
+    return true;
+  }
+
+  // どんぶり1つ分のビューポート（ホスト内の座標・CSS px）
+  function viewportOf(wrapEl) {
+    const hr = host.getBoundingClientRect();
+    const r = wrapEl.getBoundingClientRect();
+    const size = r.width * 1.3;
+    return {
+      x: r.left - hr.left + r.width / 2 - size / 2,
+      y: r.top - hr.top + r.height / 2 - size * 0.6,
+      size,
+    };
+  }
+
+  let lastW = 0, lastH = 0;
+  function draw(bowls, wraps, time) {
+    const hr = host.getBoundingClientRect();
+    const W = Math.round(hr.width), H = Math.round(hr.height);
+    if (W !== lastW || H !== lastH) {
+      renderer.setSize(W, H, false);
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      lastW = W; lastH = H;
+    }
+    renderer.setScissorTest(false);
+    renderer.clear();
+    renderer.setScissorTest(true);
+    for (let i = 0; i < scenes.length; i++) {
+      const b = bowls[i];
+      if (!b) continue;
+      const s = scenes[i];
+      const vp = viewportOf(wraps[i]);
+      const glY = H - vp.y - vp.size;
+      renderer.setViewport(vp.x, glY, vp.size, vp.size);
+      renderer.setScissor(vp.x, glY, vp.size, vp.size);
+      renderer.clearDepth();
+
+      s.soup.visible = b.soup;
+      s.noodles.visible = b.men && !b.menFly;
+      const nC = b.tops.chashu - b.fly.chashu, nN = b.tops.negi - b.fly.negi;
+      s.chashu.forEach((m, k) => { m.visible = k < nC; });
+      s.negi.forEach((g, k) => { g.visible = k < nN; });
+      // 湯気（スープが入っているときだけ）
+      s.steam.forEach((sp) => {
+        const p = (time / 2600 + sp.userData.phase) % 1;
+        sp.visible = b.soup;
+        sp.position.set(sp.userData.x + Math.sin(p * 6 + sp.userData.phase * 9) * 0.06, 0.7 + p * 0.9, -0.05);
+        const sc = 0.35 + p * 0.55;
+        sp.scale.set(sc, sc, sc);
+        sp.material.opacity = Math.sin(p * Math.PI) * 0.5;
+      });
+      renderer.render(s.scene, camera);
+    }
+  }
+
+  // 具が着地する画面上の位置（飛んでいく演出の終点）
+  function pieceScreenPos(slot, key, index, wrapEl) {
+    const s = scenes[slot];
+    const obj = key === 'chashu' ? s.chashu[Math.min(index, MAX_CHASHU - 1)] : s.negi[Math.min(index, MAX_NEGI - 1)];
+    const v = obj.position.clone().project(camera);
+    const vp = viewportOf(wrapEl);
+    const hr = host.getBoundingClientRect();
+    return {
+      x: hr.left + vp.x + (v.x + 1) / 2 * vp.size,
+      y: hr.top + vp.y + (1 - v.y) / 2 * vp.size,
+      scale: vp.size / 150,
+    };
+  }
+
+  const api = { ok: false, init, draw, pieceScreenPos };
+  return api;
+})();

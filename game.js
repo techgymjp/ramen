@@ -287,9 +287,15 @@ function flyTopping(key, b, slot, land) {
   const bowl = bowlEls[slot].bowl.getBoundingClientRect();
   const [px, py] = TOP_POS[key][index % TOP_POS[key].length];
   const sx = from.left + from.width / 2, sy = from.top + from.height * 0.45;
-  const ex = bowl.left + bowl.width * px / 100, ey = bowl.top + bowl.height * py / 100;
+  let ex = bowl.left + bowl.width * px / 100, ey = bowl.top + bowl.height * py / 100;
+  let sc = bowl.width / 96;             // どんぶりの表示サイズに合わせる
+  if (Bowl3D.ok) {
+    // 3Dのどんぶりで具が置かれる位置へ
+    const p = Bowl3D.pieceScreenPos(slot, key, index, bowlEls[slot].wrap);
+    sc = p.scale;
+    ex = p.x - 12 * sc; ey = p.y - 10 * sc;
+  }
   const lift = Math.min(sy, ey) - 70;   // 放物線の頂点
-  const sc = bowl.width / 96;           // どんぶりの表示サイズに合わせる
 
   const el = document.createElement('div');
   el.className = 'fly';
@@ -568,9 +574,12 @@ function buildUI() {
       <div class="bowl-info"></div>`;
     slot.addEventListener('pointerdown', () => tapBowl(i));
     area.appendChild(slot);
-    bowlEls.push({ slot, who: slot.querySelector('.bowl-who'), bowl: slot.querySelector('.bowl'),
+    bowlEls.push({ slot, who: slot.querySelector('.bowl-who'), bowl: slot.querySelector('.bowl'), wrap: slot.querySelector('.bowl-wrap'),
       tops: slot.querySelector('.tops'), info: slot.querySelector('.bowl-info'), key: '' });
   }
+
+  // どんぶりを3Dで描く（使えない環境では2Dのまま）
+  if (Bowl3D.init && Bowl3D.init(area.parentElement, SEAT_COUNT)) $('game').classList.add('three');
 
   // 具材の什器（厨房の右側）
   const ing = $('ingredients');
@@ -698,13 +707,17 @@ function render() {
   }
 }
 
+function render3D() {
+  if (Bowl3D.ok) Bowl3D.draw(S.bowls, bowlEls.map((e) => e.wrap), performance.now());
+}
+
 // ===================== ループ =====================
 function loop(ts) {
   if (!running) return;
   const dt = Math.min(0.1, (ts - lastTs) / 1000 || 0);
   lastTs = ts;
   update(dt);
-  if (running) render();
+  if (running) { render(); render3D(); }
   requestAnimationFrame(loop);
 }
 
