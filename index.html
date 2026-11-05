@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>行列のできるラーメン店</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="game">
+  <!-- ヘッダー -->
+  <header id="hud">
+    <div class="hud-item">🕐 <span id="clock">11:00</span></div>
+    <div class="hud-item">💴 <span id="money">¥0</span></div>
+    <div class="hud-item">評判 <span id="rep">★★★☆☆</span></div>
+    <div class="hud-item">行列 <span id="qcount">0</span>人</div>
+    <div class="hud-item">🗑️ <span id="garbage">0</span></div>
+  </header>
+
+  <!-- 客席側（奥） -->
+  <section id="shop">
+    <div id="menuboard">
+      <div class="mb-title">お品書き</div>
+      <div id="menulist"></div>
+    </div>
+    <div id="entrance">
+      <div class="noren"><span>ら</span><span>ー</span><span>めん</span></div>
+      <div id="queue"></div>
+    </div>
+    <div id="seats"></div>
+    <div id="counter"></div>
+  </section>
+
+  <!-- 厨房（手前） -->
+  <section id="kitchen">
+    <div id="toast"></div>
+    <div class="k-row">
+      <div class="k-block">
+        <div class="k-label">茹で釜（タップで麺を入れる → ピピッと鳴ったらタップで麺を出す）</div>
+        <div id="boilers"></div>
+      </div>
+    </div>
+    <div class="k-row">
+      <div class="k-block bowl-block">
+        <div class="k-label">どんぶり（できたらお客さんをタップ）</div>
+        <div id="bowlArea"></div>
+      </div>
+      <div class="k-block">
+        <div class="k-label">お冷・トッピング</div>
+        <div id="ingredients"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- オーバーレイ -->
+  <div id="overlay">
+    <div class="panel" id="panel"></div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
