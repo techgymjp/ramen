@@ -652,7 +652,7 @@ function binSVG(key) {
 }
 
 // オーダーシート（伝票）に書く短い名前
-const SLIP_NAME = { ramen: 'ラーメン', chashumen: 'チャーシュー', negiramen: 'ネギ', negichashu: 'ネギチャーシュー' };
+const SLIP_NAME = { ramen: 'ラーメン', chashumen: 'チャ', negiramen: 'ネギ', negichashu: 'ネギチャ' };
 
 // 注文を絵で表す：チャーシュー・ネギの絵。トッピングなしは「ラーメン」の文字
 function orderHtml(order) {
