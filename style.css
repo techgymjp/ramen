@@ -303,7 +303,7 @@ body {
 .fly-tebo .tebo { display: flex; left: 0; top: 0; transform: none; }
 .fly-tebo { width: var(--hs); height: var(--hs); }
 .tebo-slot .noodle, .fly-tebo .noodle {
-  width: 66%; height: 66%; border-radius: 50%;
+  width: 78%; height: 78%; border-radius: 50%;
   background: repeating-radial-gradient(#f3d36b 0 2px, #e2b941 2px 4px);
   box-shadow: 0 0 4px #0004;
 }
@@ -592,7 +592,7 @@ kbd { font-family: inherit; }
   .bowl-block { padding-top: 2px; padding-bottom: 2px; }
   .slip .no { font-size: 11px; }
   .slip .nm { font-size: 14px; letter-spacing: -0.5px; }
-  #boilers { --hs: 54px; }
+  #boilers { --hs: 66px; }
   .tebos { gap: 0 !important; }
   .pot { min-height: 0; padding: 36px 6px 6px; }
   .pot-ctrl { height: 28px; top: 4px; }
