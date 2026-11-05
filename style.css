@@ -767,3 +767,10 @@ span.ord-ic.top { width: 26px; height: 24px; }
 /* 鍋とコップを囲む枠線をなくす */
 .boiler-block { border: none !important; background: transparent !important; padding: 0 !important; }
 #cups { border: none !important; }
+
+/* スマホ：具材の什器の上下の余白を詰める（絵の上下の空きを切る） */
+@media (max-width: 640px) {
+  .side-block { padding: 2px 4px !important; justify-content: center; }
+  .side-block #ingredients { gap: 0 !important; padding: 0 !important; }
+  .bin .bin-img { aspect-ratio: 280 / 158; object-fit: cover; object-position: 50% 55%; }
+}
