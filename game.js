@@ -151,7 +151,23 @@ function beep(freq, dur = 0.08, type = 'square', vol = 0.05) {
 }
 const sfx = {
   tap:   () => beep(660, 0.05),
-  pipi:  () => { beep(2000, 0.07); setTimeout(() => beep(2000, 0.07), 120); },
+  // 茹で上がりの「ピピッ」：大きく、はっきり2回
+  pipi: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t0 = a.currentTime;
+      [0, 0.13].forEach((d) => {
+        const t = t0 + d;
+        for (const [f, type, v] of [[2093, 'square', 0.13], [4186, 'sine', 0.05]]) {
+          const o = a.createOscillator(), g = a.createGain();
+          o.type = type; o.frequency.value = f;
+          g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.004);
+          g.gain.setValueAtTime(v, t + 0.07); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+          o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.11);
+        }
+      });
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   drain: () => { beep(240, 0.06, 'triangle', 0.08); setTimeout(() => beep(260, 0.06, 'triangle', 0.08), 110); },
   // 湯切りの「パッパ」：お湯をはじく短い水しぶきの音を2回
   pappa: () => {
@@ -1391,7 +1407,7 @@ document.addEventListener('keydown', (ev) => {
 // ---------- 効果音を前もって作っておく ----------
 // 音をその場で組み立てると、スマホでは鳴るまでに少し時間がかかるので、
 // ページを開いたときに効果音を録音しておき、タップした瞬間はそれを再生するだけにする
-const SFX_PRELOAD = ['chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
+const SFX_PRELOAD = ['pipi', 'chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
 async function preloadSfx() {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OAC) return;

@@ -813,3 +813,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
 /* お客さんへ飛んでいくコップ */
 .fly-glass { transform-origin: 50% 50%; filter: drop-shadow(0 4px 4px rgba(0,0,0,.3)); }
 .seat.glass-flying .glass { visibility: hidden; }
+
+/* 茹で上がりの「ピピッ！」を大きく目立たせ、てぼも押しやすく */
+.tebo-slot .pipi {
+  top: -10px !important; left: 50% !important; transform: translateX(-50%);
+  font-size: 15px !important; padding: 2px 8px !important; border-width: 2px !important;
+  border-radius: 10px !important; box-shadow: 0 2px 4px rgba(0,0,0,.3);
+}
+.tebo-slot.ready { z-index: 3; }
+.tebo-slot.ready .tebo { animation: readybob .6s ease-in-out infinite alternate; }
+@keyframes readybob { to { margin-top: -6px; } }
+@media (max-width: 640px) { .tebo-slot .pipi { font-size: 13px !important; top: -8px !important; } }
