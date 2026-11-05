@@ -651,6 +651,9 @@ function binSVG(key) {
   </svg>`;
 }
 
+// オーダーシート（伝票）に書く短い名前
+const SLIP_NAME = { ramen: 'ラーメン', chashumen: 'チャーシュー', negiramen: 'ネギ', negichashu: 'ネギ<wbr>チャーシュー' };
+
 // 注文を絵で表す：チャーシュー・ネギの絵。トッピングなしは「ラーメン」の文字
 function orderHtml(order) {
   const rec = MENU[order].rec;
@@ -866,7 +869,7 @@ function render() {
     e.slot.classList.toggle('active', !!b && i === S.active);
     if (!b) { e.slip.innerHTML = ''; e.tops.innerHTML = ''; continue; }
     // 伝票（席番号と注文）
-    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm ord">${orderHtml(c.order)}</span>` : '';
+    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm">${SLIP_NAME[c.order]}</span>` : '';
     e.bowl.classList.toggle('has-soup', b.soup);
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
