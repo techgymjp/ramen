@@ -774,3 +774,6 @@ span.ord-ic.top { width: 26px; height: 24px; }
   .side-block #ingredients { gap: 0 !important; padding: 0 !important; }
   .bin .bin-img { aspect-ratio: 280 / 158; object-fit: cover; object-position: 50% 55%; }
 }
+
+/* ゲームからのメッセージは、コップなどより前に出す */
+#toast { z-index: 50 !important; }

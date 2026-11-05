@@ -3,6 +3,7 @@
 // ===================== 設定 =====================
 const DAY_LEN = 180;          // 営業時間（実時間・秒）
 const SEAT_COUNT = 6;          // カウンター6席（どんぶりも3列×2行）
+const CUP_COUNT = 3;            // トレーに並べるコップの数（見た目）
 const POT_CAP = 6;            // 麺茹で機のてぼ（麺かご）の数
 const BOIL_TIME = 6;          // 茹で上がりまでの秒数（ピピッと鳴る）
 const OVER_TIME = 6;          // ピピッから何秒で茹ですぎ（ゴミ）になるか
@@ -763,7 +764,7 @@ function buildUI() {
   waterEl = $('cups');
   waterEl.title = 'お冷';
   const glassImg = Bowl3D.images && Bowl3D.images.glass;
-  waterEl.innerHTML = `<div class="tray">${(glassImg ? `<img class="c3d" src="${glassImg}" alt="">` : '<div class="c"></div>').repeat(SEAT_COUNT)}</div>`;
+  waterEl.innerHTML = `<div class="tray">${(glassImg ? `<img class="c3d" src="${glassImg}" alt="">` : '<div class="c"></div>').repeat(CUP_COUNT)}</div>`;
   // コップの水を動かす（コマを順に切りかえる。コップごとに少しずらす）
   const frames = Bowl3D.images && Bowl3D.images.glassFrames;
   if (frames) {
