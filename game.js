@@ -465,7 +465,7 @@ function serveFly(i, b) {
   const img = Bowl3D.ok && Bowl3D.bowlImage ? Bowl3D.bowlImage(b.tops.chashu > 0, b.tops.negi > 0) : null;
   const finish = () => {
     if (el) el.remove();
-    if (S.bowls[i] === b) { b.serving = false; tapCustomer(i); }
+    if (S.bowls[i] === b) { b.serving = false; serveTo(i); }
   };
   let el = null;
   if (!img || !document.body.animate) { finish(); return; }
@@ -487,7 +487,16 @@ function serveFly(i, b) {
   anim.onfinish = finish; anim.oncancel = finish;
 }
 
+// お客さんをタップ：コップの水が空になったときだけ、水を補充する
+// （最初の1杯はカウンター左のコップから。ラーメンは自動で出る）
 function tapCustomer(seatIdx) {
+  const c = S.seats[seatIdx];
+  if (!c || c.state === 'leaving') return;
+  if (c.glass && !c.water) giveWater(c);
+}
+
+// できたラーメンを出す（自動で呼ばれる）
+function serveTo(seatIdx) {
   const c = S.seats[seatIdx];
   if (!c) return;
   if (c.state !== 'waiting') return;
@@ -894,7 +903,7 @@ function render() {
       bar.style.width = (r * 100) + '%';
       bar.style.background = r > 0.5 ? '#4c4' : r > 0.25 ? '#eb3' : '#e33';
     }
-    const target = !!S.bowls[i] && S.bowls[i].men && c.state === 'waiting';
+    const target = c.glass && !c.water && c.state !== 'leaving';   // コップが空のお客さんを光らせる
     e.root.classList.toggle('target', target);
   }
 
@@ -1065,7 +1074,7 @@ function showHelp() {
     お客さんを満足させると評判が上がり、行列がどんどん長くなります。</p>
     <h2>タップするもの</h2>
     <ul>
-      <li>🥛 カウンター左の<b>コップ</b>をタップ → お水が必要なお客さんの左に水を出す（ラーメンは熱いので、<b>水がないと食べてくれません</b>）。水を飲みほして空になったら、<b>コップをタップで補充</b></li>
+      <li>🥛 カウンター左の<b>コップ</b>をタップ → お水が必要なお客さんの左に水を出す（ラーメンは熱いので、<b>水がないと食べてくれません</b>）。水を飲みほして空になったら、<b>コップかお客さんをタップで補充</b></li>
       <li>🍜 <b>麺茹で機</b>の空いている穴をタップで<b>麺を入れる</b>（6玉まで同時に茹でられます）</li>
       <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
       <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
@@ -1080,7 +1089,7 @@ function showHelp() {
       <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
       <li>麺を入れたまま、お客さんが帰ってしまったラーメン</li>
     </ul>
-    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6に出す</p>
+    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6の空のコップに水</p>
     <div class="btn-row">
       <button class="btn sub" id="backBtn">もどる</button>
       <button class="btn" id="startBtn">開店！</button>
