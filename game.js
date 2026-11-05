@@ -257,7 +257,7 @@ const sfx = {
     const a = getAudio(); if (!a) return;
     try {
       const t0 = a.currentTime;
-      [0.27, 0.45, 0.63].forEach((d, k) => {
+      [0.15, 0.25, 0.34].forEach((d, k) => {   // アニメの「チャッ」と同じタイミング（テンポよく）
         const t = t0 + d, v = 0.5 - k * 0.08;
         noiseBurst(a, t, 0.13, v, 'bandpass', 3200, 900);
         const o = a.createOscillator(), og = a.createGain();   // 「チャッ」のアタック
@@ -266,7 +266,7 @@ const sfx = {
         o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.08);
       });
       for (let k = 0; k < 4; k++) {   // ぽたぽた
-        const t = t0 + 0.75 + k * 0.09;
+        const t = t0 + 0.45 + k * 0.08;
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(1200 + k * 150, t); o.frequency.exponentialRampToValueAtTime(2200, t + 0.03);
         og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
@@ -535,16 +535,16 @@ function flyTebo(slotEl, target, b) {
   const at = (x, y, sc = 1.1, r = 0) => ({ transform: `translate(${x}px, ${y}px) scale(${sc}) rotate(${r}deg)` });
   const anim = el.animate([
     at(sx, sy, 1),
-    { ...at(sx, up), offset: 0.15 },
-    { ...at(sx, up + 26), offset: 0.23 },  // チャッ（上下に揺らして湯切り）
+    { ...at(sx, up), offset: 0.1 },
+    { ...at(sx, up + 26), offset: 0.16 },  // チャッ（上下にすばやく揺らして湯切り）
+    { ...at(sx, up - 4), offset: 0.21 },
+    { ...at(sx, up + 26), offset: 0.26 },  // チャッ
     { ...at(sx, up - 4), offset: 0.31 },
-    { ...at(sx, up + 26), offset: 0.39 },  // チャッ
-    { ...at(sx, up - 4), offset: 0.47 },
-    { ...at(sx, up + 26), offset: 0.55 },  // チャッ
-    { ...at((sx + ex) / 2, Math.min(up, ey) - 30), offset: 0.76 },
-    { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.92 },
+    { ...at(sx, up + 26), offset: 0.36 },  // チャッ
+    { ...at((sx + ex) / 2, Math.min(up, ey) - 30), offset: 0.62 },
+    { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.88 },
     { ...at(ex, ey, 0.9, -60), opacity: 0 },
-  ], { duration: 1150, easing: 'ease-in-out' });
+  ], { duration: 950, easing: 'ease-in-out' });
   sfx.yukiri();   // 上下に振るのに合わせて「チャッ、チャッ、チャッ」
   anim.onfinish = done;
   anim.oncancel = done;
