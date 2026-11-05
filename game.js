@@ -93,6 +93,22 @@ function toast(msg) {
 // ---------- 効果音 ----------
 let actx = null;
 let sfxNoise = null;
+// ノイズで水の音を作る（フィルターの周波数を f0 → f1 に動かす）
+function noiseBurst(a, t, dur, vol, type, f0, f1) {
+  if (!sfxNoise) {
+    sfxNoise = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate);
+    const d = sfxNoise.getChannelData(0);
+    for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+  }
+  const src = a.createBufferSource(); src.buffer = sfxNoise; src.loop = true;
+  const f = a.createBiquadFilter(); f.type = type; f.Q.value = 1;
+  f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  const g = a.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008);
+  g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  src.connect(f); f.connect(g); g.connect(a.destination);
+  src.start(t); src.stop(t + dur + 0.02);
+}
 function getAudio() {
   try {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -224,6 +240,36 @@ const sfx = {
         b.type = 'sine'; b.frequency.setValueAtTime(380 + Math.random() * 260, t); b.frequency.exponentialRampToValueAtTime(900, t + 0.04);
         bg.gain.setValueAtTime(0.07, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
         b.connect(bg); bg.connect(a.destination); b.start(t); b.stop(t + 0.06);
+      }
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // てぼをお湯から引き上げる「ザバッ」（お湯がこぼれ落ちる）
+  lift: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t0 = a.currentTime;
+      noiseBurst(a, t0, 0.4, 0.3, 'lowpass', 2600, 700);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // 湯切り「チャッ、チャッ、チャッ」：てぼを振るたびにお湯が飛ぶ音（アニメの振りに合わせる）＋しずく
+  yukiri: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t0 = a.currentTime;
+      [0.27, 0.45, 0.63].forEach((d, k) => {
+        const t = t0 + d, v = 0.5 - k * 0.08;
+        noiseBurst(a, t, 0.13, v, 'bandpass', 3200, 900);
+        const o = a.createOscillator(), og = a.createGain();   // 「チャッ」のアタック
+        o.type = 'triangle'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.05);
+        og.gain.setValueAtTime(v * 0.7, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.08);
+      });
+      for (let k = 0; k < 4; k++) {   // ぽたぽた
+        const t = t0 + 0.75 + k * 0.09;
+        const o = a.createOscillator(), og = a.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(1200 + k * 150, t); o.frequency.exponentialRampToValueAtTime(2200, t + 0.03);
+        og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.05);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -410,7 +456,7 @@ function takeNoodle(i) {
   b.men = true;
   b.menFly = true;   // てぼが運ばれてくるまで麺は描かない
   S.active = target;
-  beep(520, 0.06, 'triangle', 0.05);   // てぼを持ち上げる
+  sfx.lift();   // てぼをお湯から引き上げる「ザバッ」
   const el = teboEls[i].el;
   el.classList.remove('drain');
   void el.offsetWidth; // アニメーションを再生し直す
@@ -446,7 +492,7 @@ function flyTebo(slotEl, target, b) {
     { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.92 },
     { ...at(ex, ey, 0.9, -60), opacity: 0 },
   ], { duration: 1150, easing: 'ease-in-out' });
-  setTimeout(() => sfx.pappa(), 250);   // 上下に振るのに合わせて「パッパ」
+  sfx.yukiri();   // 上下に振るのに合わせて「チャッ、チャッ、チャッ」
   anim.onfinish = done;
   anim.oncancel = done;
 }
