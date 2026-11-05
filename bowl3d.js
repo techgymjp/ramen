@@ -1026,7 +1026,31 @@ const Bowl3D = (() => {
       scene.add(g);
     }, [0, 0.45, 0.4], [0, 0.02, 0], 40);
 
-    return { binChashu, binNegi, flyChashu, flyNegi };
+    // お冷のコップ（ガラス・水・氷）
+    const glass = snapshot(80, 112, (scene) => {
+      const gl = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.9, 32, 1, true),
+        new THREE.MeshPhysicalMaterial
+          ? new THREE.MeshPhysicalMaterial({ color: 0xcfe6f2, roughness: 0.05, transparent: true, opacity: 0.22, clearcoat: 1, side: THREE.DoubleSide })
+          : new THREE.MeshStandardMaterial({ color: 0xeef8ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+      scene.add(gl);
+      const bottom = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 32),
+        new THREE.MeshStandardMaterial({ color: 0xdff0fa, transparent: true, opacity: 0.6, roughness: 0.1 }));
+      bottom.position.y = -0.41; scene.add(bottom);
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.25, 0.62, 32),
+        new THREE.MeshStandardMaterial({ color: 0x5fb4e0, transparent: true, opacity: 0.7, roughness: 0.05 }));
+      water.position.y = -0.12; scene.add(water);
+      const surf = new THREE.Mesh(new THREE.CircleGeometry(0.285, 32), new THREE.MeshStandardMaterial({ color: 0x9fd8f4, roughness: 0.02 }));
+      surf.rotation.x = -Math.PI / 2; surf.position.y = 0.19; scene.add(surf);
+      const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.014, 8, 40), new THREE.MeshStandardMaterial({ color: 0xe8f4fa, roughness: 0.05 }));
+      rim.rotation.x = Math.PI / 2; rim.position.y = 0.45; scene.add(rim);
+      const iceM = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, roughness: 0.1 });
+      for (const [x, z, r] of [[-0.08, 0.02, 0.4], [0.1, -0.06, 1.1]]) {
+        const ice = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.15, 0.17), iceM);
+        ice.position.set(x, 0.2, z); ice.rotation.set(r, r * 0.7, 0.3); scene.add(ice);
+      }
+    }, [0, 0.75, 2.1], [0, 0.02, 0], 32);
+
+    return { binChashu, binNegi, flyChashu, flyNegi, glass };
   }
 
   // ---------- 公開API ----------

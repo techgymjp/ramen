@@ -716,7 +716,7 @@ span.ord-ic.top { width: 26px; height: 24px; }
   position: relative !important; left: auto !important; bottom: auto !important; width: auto !important;
   margin-bottom: 6px; border-radius: 6px !important; border: 1px solid #8d969d !important; padding: 4px !important;
 }
-#cups .tray { display: flex !important; justify-content: center; gap: 8px; padding: 2px; }
+#cups .tray { display: flex !important; justify-content: space-evenly; gap: 2px; padding: 2px; }
 #cups .tray .c { width: 20px; height: 28px; }
 @media (max-width: 640px) {
   /* スマホ：鍋の操作盤は出さず、コップは鍋の外（カウンターのすぐ手前）に置く */
@@ -746,4 +746,18 @@ span.ord-ic.top { width: 26px; height: 24px; }
 #cups .tray .c::after {    /* 水面 */
   content: ""; position: absolute; left: 1px; right: 1px; top: 18%; height: 4px; border-radius: 50%;
   background: rgba(200,235,250,.95); box-shadow: inset 0 -1px 0 rgba(120,180,215,.6);
+}
+
+/* 3Dのコップ */
+#cups .tray .c3d { width: 24px; height: 34px; flex: 0 0 auto; display: block; filter: drop-shadow(1px 3px 2px rgba(0,0,0,.3)); }
+#cups:active .tray .c3d { transform: translateY(1px); }
+@media (max-width: 640px) {
+  /* スマホ：コップを大きく並べ、トレーの枠から上にはみ出す */
+  #cups { margin-top: 4px; height: 22px; padding: 0 !important; overflow: visible; z-index: 5; }
+  #cups .tray { position: relative; top: -30px; gap: 2px !important; padding: 0 !important; }
+  /* 席番号はカウンターの上の方に上げて、コップがはみ出しても隠れないように */
+  .seat-no { bottom: -16px !important; }
+  #kitchen, .boiler-block { overflow: visible !important; }
+  #cups .tray .c3d { width: 33px; height: 46px; flex: 0 0 auto; }
+  #cups .tray { justify-content: space-evenly !important; }
 }

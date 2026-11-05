@@ -762,7 +762,8 @@ function buildUI() {
   // コップはカウンターの左側
   waterEl = $('cups');
   waterEl.title = 'お冷';
-  waterEl.innerHTML = `<div class="tray">${'<div class="c"></div>'.repeat(SEAT_COUNT)}</div>`;
+  const glassImg = Bowl3D.images && Bowl3D.images.glass;
+  waterEl.innerHTML = `<div class="tray">${(glassImg ? `<img class="c3d" src="${glassImg}" alt="">` : '<div class="c"></div>').repeat(SEAT_COUNT)}</div>`;
   waterEl.addEventListener('pointerdown', pickWater);
 }
 
