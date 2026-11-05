@@ -111,7 +111,11 @@ function noiseBurst(a, t, dur, vol, type, f0, f1) {
 }
 function getAudio() {
   try {
-    if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (!actx) {
+      // 反応を速くするため、いちばん低遅延の設定で作る
+      const AC = window.AudioContext || window.webkitAudioContext;
+      try { actx = new AC({ latencyHint: 'interactive' }); } catch (e) { actx = new AC(); }
+    }
     if (actx.state === 'suspended') actx.resume();
   } catch (e) { actx = null; }
   return actx;
@@ -187,6 +191,8 @@ const sfx = {
         for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
       }
       const t0 = a.currentTime, dur = 0.55;
+      // 注いだ瞬間の「ジャッ」：最初の一瞬だけ広い帯域で強く鳴らす
+      noiseBurst(a, t0, 0.09, 0.3, 'highpass', 1500, 3500);
       const src = a.createBufferSource(); src.buffer = sfxNoise; src.loop = true;
       const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
       bp.frequency.setValueAtTime(5500, t0); bp.frequency.exponentialRampToValueAtTime(1800, t0 + dur);
@@ -1236,7 +1242,22 @@ function loop(ts) {
   requestAnimationFrame(loop);
 }
 
+// 開店時に音の準備をしておく（最初の音が遅れないように）
+function warmUpAudio() {
+  const a = getAudio(); if (!a) return;
+  try {
+    if (!sfxNoise) {
+      sfxNoise = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate);
+      const d = sfxNoise.getChannelData(0);
+      for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+    }
+    const o = a.createOscillator(), g = a.createGain();   // 無音を一瞬鳴らして出力を起こしておく
+    g.gain.value = 0; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.05);
+  } catch (e) { /* 音が出せなくても続行 */ }
+}
+
 function startGame() {
+  warmUpAudio();
   newGame();
   for (const e of [...seatEls, ...bowlEls]) e.key = 'x';
   $('queue').dataset.key = 'x';
