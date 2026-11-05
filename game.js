@@ -302,6 +302,30 @@ const sfx = {
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // ラーメンが飛んでいく「シュッ」
+  whoosh: () => {
+    const a = getAudio(); if (!a) return;
+    try { noiseBurst(a, a.currentTime, 0.32, 0.22, 'bandpass', 700, 3800); } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // どんぶりをカウンターに置く「ゴトッ」：陶器の重い音と、短い響き
+  bowlDown: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.1);
+      og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.45, t + 0.004);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.2);
+      for (const [f, v, d] of [[1180, 0.07, 0.25], [2650, 0.04, 0.18]]) {   // 陶器の「コン」
+        const r = a.createOscillator(), rg = a.createGain();
+        r.type = 'sine'; r.frequency.value = f;
+        rg.gain.setValueAtTime(v, t); rg.gain.exponentialRampToValueAtTime(0.001, t + d);
+        r.connect(rg); rg.connect(a.destination); r.start(t); r.stop(t + d + 0.02);
+      }
+      noiseBurst(a, t, 0.06, 0.12, 'lowpass', 2000, 600);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -627,7 +651,7 @@ function serveFly(i, b) {
   const img = Bowl3D.ok && Bowl3D.bowlImage ? Bowl3D.bowlImage(b.tops.chashu > 0, b.tops.negi > 0) : null;
   const finish = () => {
     if (el) el.remove();
-    if (S.bowls[i] === b) { b.serving = false; serveTo(i); }
+    if (S.bowls[i] === b) { b.serving = false; sfx.bowlDown(); serveTo(i); }   // 「ゴトッ」とカウンターに置く
   };
   let el = null;
   if (!img || !document.body.animate) { finish(); return; }
@@ -636,7 +660,7 @@ function serveFly(i, b) {
   const w = from.width;
   el.style.width = w + 'px';
   document.body.appendChild(el);
-  beep(700, 0.06, 'triangle', 0.05);
+  sfx.whoosh();   // 「シュッ」と飛んでいく
   // 中心の位置で動かす（拡大縮小も中心を基準にする）
   const h = w * 0.75;
   const scx = from.left + from.width / 2, scy = from.top + from.height / 2;
