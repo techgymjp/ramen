@@ -151,7 +151,7 @@ body {
 
 #seats {
   position: absolute;
-  left: 76px; right: 6px;
+  left: 6px; right: 6px;
   bottom: 30px;
   display: flex;
   justify-content: space-around;
@@ -573,7 +573,7 @@ kbd { font-family: inherit; }
   .t-price { font-size: 8px; }
   .harigami { right: 6px; top: 14px; width: 66px; font-size: 9px; padding: 4px 2px; }
   .harigami::first-line { font-size: 10px; }
-  #seats { left: 58px; right: 2px; }
+  #seats { left: 2px; right: 2px; }
   .seat { min-width: 0; width: 16.4%; }
   .cust { font-size: 36px; }
   .bubble { min-width: 0; font-size: 12px; padding: 2px 3px; line-height: 1.2; }
@@ -638,7 +638,6 @@ kbd { font-family: inherit; }
 .bubble .nowater { font-size: 10px; color: #07c; }
 
 @media (max-width: 640px) {
-  #cups { left: 4px; width: 50px; }
   }
 
 @media (max-width: 640px) {
@@ -709,4 +708,22 @@ span.ord-ic.top { width: 26px; height: 24px; }
   .slip .no { font-size: 9px; }
   .slip .nm { font-size: 12px; }
   .slip .nm.long { font-size: 9.5px; letter-spacing: -1px; }
+}
+
+/* コップのトレー：カウンターではなく厨房に置く。PCは鍋の上、スマホは鍋の時計の場所 */
+#cups {
+  position: relative !important; left: auto !important; bottom: auto !important; width: auto !important;
+  margin-bottom: 6px; border-radius: 6px !important; border: 1px solid #8d969d !important; padding: 4px !important;
+}
+#cups .tray { display: flex !important; justify-content: center; gap: 8px; padding: 2px; }
+#cups .tray .c { width: 20px; height: 28px; }
+@media (max-width: 640px) {
+  .boiler-block { position: relative; }
+  .pot-ctrl { display: none; }
+  #cups {
+    position: absolute !important; top: 12px; left: 50% !important; transform: translateX(-50%);
+    width: 72% !important; margin: 0; z-index: 3; padding: 2px !important;
+  }
+  #cups .tray { gap: 4px; }
+  #cups .tray .c { width: 14px; height: 20px; }
 }
