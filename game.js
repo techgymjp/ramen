@@ -274,6 +274,34 @@ const sfx = {
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // チャーシューがどんぶりに着く「ポトッ」：やわらかく重い音＋スープがはねる
+  chashuLand: (k = 0) => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(190 - k * 10, t); o.frequency.exponentialRampToValueAtTime(75, t + 0.12);
+      og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.38, t + 0.006);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
+      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.18);
+      noiseBurst(a, t, 0.12, 0.12, 'bandpass', 1600, 500);   // ぴちゃ
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // ネギがのる「パラッ」：軽くて細かい音
+  negiLand: (k = 0) => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      noiseBurst(a, t, 0.08, 0.16, 'highpass', 4500, 2500);
+      for (let m = 0; m < 3; m++) {
+        const tt = t + m * 0.022 + Math.random() * 0.01;
+        const o = a.createOscillator(), og = a.createGain();
+        o.type = 'triangle'; o.frequency.value = 1800 + Math.random() * 1400;
+        og.gain.setValueAtTime(0.05, tt); og.gain.exponentialRampToValueAtTime(0.001, tt + 0.03);
+        o.connect(og); og.connect(a.destination); o.start(tt); o.stop(tt + 0.04);
+      }
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -562,6 +590,7 @@ function flyTopping(key, b, slot, index, land) {
   const finish = () => {
     el.remove();
     if (land) b.fly[key] = 0;
+    if (key === 'chashu') sfx.chashuLand(index); else sfx.negiLand(index);   // どんぶりに着いた音
   };
   if (!el.animate) { finish(); return; }
   const spin = key === 'chashu' ? 540 : 360;
