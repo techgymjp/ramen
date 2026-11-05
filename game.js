@@ -193,6 +193,40 @@ const sfx = {
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // 麺を入れる「チャポン」：てぼが湯に沈む音と、ぐつぐつ泡立つ音
+  chapon: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      if (!sfxNoise) {
+        sfxNoise = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate);
+        const d = sfxNoise.getChannelData(0);
+        for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+      }
+      const t0 = a.currentTime;
+      // ポチャン：音程がすっと上がる水滴の音
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(260, t0); o.frequency.exponentialRampToValueAtTime(720, t0 + 0.09);
+      og.gain.setValueAtTime(0.0001, t0); og.gain.linearRampToValueAtTime(0.32, t0 + 0.01);
+      og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
+      o.connect(og); og.connect(a.destination); o.start(t0); o.stop(t0 + 0.18);
+      // ザブッ：水しぶき
+      const src = a.createBufferSource(); src.buffer = sfxNoise;
+      const lp = a.createBiquadFilter(); lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(3000, t0); lp.frequency.exponentialRampToValueAtTime(500, t0 + 0.25);
+      const ng = a.createGain();
+      ng.gain.setValueAtTime(0.0001, t0); ng.gain.linearRampToValueAtTime(0.25, t0 + 0.01);
+      ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
+      src.connect(lp); lp.connect(ng); ng.connect(a.destination); src.start(t0); src.stop(t0 + 0.3);
+      // ぐつぐつ：小さな泡の音
+      for (let k = 0; k < 6; k++) {
+        const t = t0 + 0.15 + k * 0.07 + Math.random() * 0.04;
+        const b = a.createOscillator(), bg = a.createGain();
+        b.type = 'sine'; b.frequency.setValueAtTime(380 + Math.random() * 260, t); b.frequency.exponentialRampToValueAtTime(900, t + 0.04);
+        bg.gain.setValueAtTime(0.07, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+        b.connect(bg); bg.connect(a.destination); b.start(t); b.stop(t + 0.06);
+      }
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -354,7 +388,7 @@ function addNoodle(at) {
   const i = at !== undefined ? at : S.pot.indexOf(null);
   if (i < 0) { toast('てぼが全部ふさがっています'); return; }
   S.pot[i] = { t: 0, beeped: false };
-  beep(440, 0.06);
+  sfx.chapon();
 }
 
 // てぼをタップ：茹で上がっていたら湯切りしてどんぶりへ
