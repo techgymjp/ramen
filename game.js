@@ -151,7 +151,8 @@ function throwAway(msg, cost) {
   sfx.trash();
 }
 
-// 水を出す：お冷を持つ（もう一度タップで置く）
+// カウンター左のコップを取る（もう一度タップで戻す）。
+// 料理の途中でも持てて、お客さんをタップすればいつでも水を出せる
 function pickWater() {
   S.water = !S.water;
   sfx.water();
@@ -159,7 +160,6 @@ function pickWater() {
 
 // 麺を入れる／麺を出す
 function clickBoiler(i) {
-  S.water = false;
   const bo = S.boilers[i];
   if (!bo.on) {
     bo.on = true; bo.t = 0; bo.beeped = false;
@@ -180,7 +180,6 @@ function clickBoiler(i) {
 
 // トッピング
 function addTopping(key) {
-  S.water = false;
   const b = S.bowl;
   if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
   b.tops[key]++;
@@ -196,7 +195,8 @@ function addTopping(key) {
 function tapCustomer(seatIdx) {
   const c = S.seats[seatIdx];
   if (!c) return;
-  if (S.water) { giveWater(c); return; }
+  // コップを持っていて、まだ水がないお客さんなら水を出す
+  if (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving') { giveWater(c); return; }
   if (c.state !== 'waiting') return;
   const b = S.bowl;
   if (!b.men) { toast('まだラーメンができていません'); return; }
@@ -227,6 +227,7 @@ function giveWater(c) {
   if (c.water || c.state === 'eating' || c.state === 'leaving') { toast('お水はもう出しています'); return; }
   c.water = true;
   c.patMax += WATER_BONUS;
+  S.water = false;   // コップを渡したので手は空く
   sfx.water();
   if (c.state === 'hot') startEating(S.seats.indexOf(c), c);
 }
@@ -390,8 +391,10 @@ function buildUI() {
     ing.appendChild(el);
     return el;
   };
-  waterEl = mk('<div class="icon">🥛</div>水を出す<span class="key">[G]</span>', pickWater);
-  waterEl.classList.add('water');
+  // コップはカウンターの左側
+  waterEl = $('cups');
+  waterEl.innerHTML = '<div class="cup-stack">🥛🥛<br>🥛🥛🥛</div><div class="cup-label">水を出す<span class="key">[G]</span></div>';
+  waterEl.addEventListener('pointerdown', pickWater);
   for (const t of TOPPINGS) {
     mk(`<div class="icon"><div class="top ${t.key}"></div></div>${t.name}<span class="key">[${t.hotkey}]</span>`,
       () => addTopping(t.key));
@@ -457,8 +460,8 @@ function render() {
       bar.style.width = (r * 100) + '%';
       bar.style.background = r > 0.5 ? '#4c4' : r > 0.25 ? '#eb3' : '#e33';
     }
-    const target = S.water ? !c.water && c.state !== 'eating' && c.state !== 'leaving'
-      : bowlReady && c.state === 'waiting';
+    const target = (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving')
+      || (bowlReady && c.state === 'waiting');
     e.root.classList.toggle('target', target);
   }
 
@@ -571,7 +574,7 @@ function showTitle() {
     お客さんを満足させると評判が上がり、行列がどんどん長くなります。</p>
     <h2>タップするもの</h2>
     <ul>
-      <li>🥛 <b>水を出す</b> → お客さんをタップ（ラーメンは熱いので、<b>水がないと食べてくれません</b>）</li>
+      <li>🥛 カウンター左の<b>コップ</b> → お客さんをタップで水を出す。いつでも出せます（ラーメンは熱いので、<b>水がないと食べてくれません</b>）</li>
       <li>🍜 <b>茹で釜</b>をタップで<b>麺を入れる</b></li>
       <li>🔔 <b>ピピッ</b>と鳴ったら茹で釜をタップで<b>麺を出す</b>（湯切りしてどんぶりへ）</li>
       <li>🥩 <b>トッピング</b>（チャーシュー・ネギ）を注文の数だけのせる</li>

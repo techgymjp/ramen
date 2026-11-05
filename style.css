@@ -92,7 +92,7 @@ body {
 
 #seats {
   position: absolute;
-  left: 130px; right: 140px;
+  left: 200px; right: 140px;
   bottom: 30px;
   display: flex;
   justify-content: space-around;
@@ -286,7 +286,7 @@ body {
 
 #ingredients {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   height: calc(100% - 20px);
   gap: 6px;
 }
@@ -362,7 +362,7 @@ kbd { font-family: inherit; }
   #shop { height: 230px; }
   #entrance { width: 70px; }
   #menuboard { display: none; }
-  #seats { left: 76px; right: 4px; }
+  #seats { left: 128px; right: 4px; }
   .seat { min-width: 0; width: 19%; }
   .cust { font-size: 36px; }
   .bubble { min-width: 0; font-size: 10px; padding: 2px 3px; }
@@ -370,11 +370,23 @@ kbd { font-family: inherit; }
   .k-block { min-width: 0; flex-basis: 100%; }
 }
 
-/* お冷・お客さん */
-.ing.water { background: #e6f4ff; }
-.ing.water .icon { font-size: 22px; line-height: 28px; }
-.ing.active { border-color: #09f; box-shadow: 0 0 0 3px #09f6; background: #cdeaff; }
+/* カウンター左のコップ */
+#cups {
+  position: absolute; left: 128px; bottom: 30px; width: 66px; z-index: 2;
+  background: #e6f4ffdd; border: 2px solid #7aa; border-bottom: none;
+  border-radius: 8px 8px 0 0; padding: 4px 2px;
+  text-align: center; cursor: pointer;
+}
+#cups.active { border-color: #09f; box-shadow: 0 0 0 3px #09f6; background: #cdeaff; }
+.cup-stack { font-size: 18px; line-height: 1.1; }
+.cup-label { font-size: 11px; font-weight: bold; }
+.cup-label .key { display: block; font-size: 9px; color: #888; font-weight: normal; }
 .hand-water .seat.target { cursor: copy; }
 .cust .cup { font-size: 20px; position: absolute; right: -14px; bottom: 0; }
 .bubble .rec { font-size: 9px; font-weight: normal; color: #555; }
 .bubble .nowater { font-size: 10px; color: #07c; }
+
+@media (max-width: 640px) {
+  #cups { left: 72px; width: 54px; }
+  .cup-stack { font-size: 14px; }
+}
