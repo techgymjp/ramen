@@ -179,8 +179,9 @@ body {
 .bubble {
   position: relative;
   background: #fff;
-  border: 2px solid #333;
+  border: 1px solid #b8b0a4;
   border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.18);
   padding: 3px 6px;
   font-size: 16px;
   font-weight: bold;
@@ -192,7 +193,7 @@ body {
 .bubble::after {
   content: ""; position: absolute; bottom: -8px; left: 50%;
   margin-left: -6px;
-  border: 6px solid transparent; border-top-color: #333;
+  border: 6px solid transparent; border-top-color: #fff; filter: drop-shadow(0 1px 0 #b8b0a4);
 }
 .bubble .hard { font-size: 11px; color: #a33; }
 .bubble .hard.soft { color: #36a; }
