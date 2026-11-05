@@ -651,6 +651,17 @@ function binSVG(key) {
   </svg>`;
 }
 
+// 注文を絵で表す：チャーシュー・ネギの絵。トッピングなしは「ラーメン」の文字
+function orderHtml(order) {
+  const rec = MENU[order].rec;
+  const icon = (key) => {
+    const img = Bowl3D.images && Bowl3D.images[key === 'chashu' ? 'flyChashu' : 'flyNegi'];
+    return img ? `<img class="ord-ic" src="${img}" alt="">` : `<span class="ord-ic top ${key}"></span>`;
+  };
+  const icons = TOPPINGS.filter((t) => rec[t.key]).map((t) => icon(t.key)).join('');
+  return icons || '<span class="ord-txt">ラーメン</span>';
+}
+
 // 長いメニュー名は「ネギ／チャーシュー／メン」の切れ目で折り返す
 function wbrName(name) {
   return name.replace('ネギ', 'ネギ<wbr>').replace('チャーシュー', 'チャーシュー<wbr>').replace(/<wbr>$/, '');
@@ -808,7 +819,7 @@ function render() {
           : c.state === 'hot' ? `<div class="react bad">${c.react}</div>` : '';
         const body = c.state === 'hot'
           ? '<div class="bubble">💧<div class="pbar"><div></div></div></div>'
-          : `<div class="bubble">${m.name}${c.water ? '' : '<span class="nowater">💧</span>'}<div class="pbar"><div></div></div></div>`;
+          : `<div class="bubble"><div class="ord">${orderHtml(c.order)}${c.water ? '' : '<span class="nowater">💧</span>'}</div><div class="pbar"><div></div></div></div>`;
         e.top.innerHTML = head + body;
       } else {
         e.top.innerHTML = `<div class="react ${c.reactCls}">${c.react}</div>`;
@@ -855,7 +866,7 @@ function render() {
     e.slot.classList.toggle('active', !!b && i === S.active);
     if (!b) { e.slip.innerHTML = ''; e.tops.innerHTML = ''; continue; }
     // 伝票（席番号と注文）
-    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm">${wbrName(MENU[c.order].name)}</span>` : '';
+    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm ord">${orderHtml(c.order)}</span>` : '';
     e.bowl.classList.toggle('has-soup', b.soup);
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
