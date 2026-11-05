@@ -44,10 +44,10 @@ body {
   position: relative;
   height: 290px;
   background:
-    linear-gradient(#6b4a2c 0 0) 0 52% / 100% 4px no-repeat,
+    linear-gradient(#6b4a2c 0 0) 0 var(--wall-h, 52%) / 100% 4px no-repeat,
     repeating-linear-gradient(90deg, #ffffff38 0 1px, #0000 1px 26px) 0 0 / 100% 100%,
     repeating-linear-gradient(#ffffff38 0 1px, #0000 1px 26px) 0 0 / 100% 100%,
-    linear-gradient(#efe3c2 0 52%, #bcd8c8 52% 100%);
+    linear-gradient(#efe3c2 0 var(--wall-h, 52%), #bcd8c8 var(--wall-h, 52%) 100%);
   border-bottom: 6px solid #5b3a1f;
 }
 #shop::before {
@@ -555,7 +555,7 @@ kbd { font-family: inherit; }
   #shop { height: 214px; }
   #shop::before { height: 38%; }
   #wall { height: 38%; }
-  #shop { background-position: 0 38%, 0 0, 0 0, 0 0; }
+  #shop { --wall-h: 38%; }
   #hud { font-size: 12px; padding: 3px 4px; gap: 2px 8px; }
   .hud-btn { font-size: 10px; padding: 0 4px; }
   #hud { flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; }
