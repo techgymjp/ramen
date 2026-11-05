@@ -763,3 +763,7 @@ span.ord-ic.top { width: 26px; height: 24px; }
   #cups .tray .c3d { width: 33px; height: 46px; flex: 0 0 auto; }
   #cups .tray { justify-content: space-evenly !important; }
 }
+
+/* 鍋とコップを囲む枠線をなくす */
+.boiler-block { border: none !important; background: transparent !important; padding: 0 !important; }
+#cups { border: none !important; }
