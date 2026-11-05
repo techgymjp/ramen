@@ -179,8 +179,7 @@ const Bowl3D = (() => {
   }
 
   // ---------- 1つのどんぶりのシーン ----------
-  function makeScene(slot) {
-    const scene = new THREE.Scene();
+  function addLights(scene) {
     scene.add(new THREE.HemisphereLight(0xfff4e0, 0x5a4030, 0.5));
     const key = new THREE.DirectionalLight(0xfff0d8, 0.85);
     key.position.set(-1.5, 3, 2.2);
@@ -188,6 +187,11 @@ const Bowl3D = (() => {
     const rim = new THREE.PointLight(0xffd29a, 0.6, 6);
     rim.position.set(1.4, 1.6, -1.2);
     scene.add(rim);
+  }
+
+  function makeScene(slot) {
+    const scene = new THREE.Scene();
+    addLights(scene);
 
     const bowl = new THREE.Group();
     bowl.add(new THREE.Mesh(outerGeo, outerMat));
@@ -329,6 +333,101 @@ const Bowl3D = (() => {
     return { draw, pieceScreenPos };
   }
 
+  // ---------- 具材の什器と、飛んでいく具の絵（3Dで描いて画像にする） ----------
+  const steelMat = new THREE.MeshStandardMaterial({ color: 0xc9d0d6, metalness: 0.35, roughness: 0.3 });
+  const steelDark = new THREE.MeshStandardMaterial({ color: 0x8c959d, metalness: 0.3, roughness: 0.45 });
+
+  // ステンレスのバット（W×D、深さH）
+  function makeTray(W, D, H) {
+    const g = new THREE.Group();
+    const t = 0.06;
+    const bottom = new THREE.Mesh(new THREE.BoxGeometry(W, t, D), steelDark);
+    bottom.position.y = t / 2;
+    g.add(bottom);
+    const wall = (w, d, x, z) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, H, d), steelMat);
+      m.position.set(x, H / 2, z);
+      g.add(m);
+    };
+    wall(W, t, 0, -D / 2); wall(W, t, 0, D / 2);
+    wall(t, D, -W / 2, 0); wall(t, D, W / 2, 0);
+    // ふちの返し
+    const lip = (w, d, x, z) => {
+      const m = new THREE.Mesh(new THREE.BoxGeometry(w, 0.04, d), steelMat);
+      m.position.set(x, H, z);
+      g.add(m);
+    };
+    lip(W + 0.16, 0.14, 0, -D / 2); lip(W + 0.16, 0.14, 0, D / 2);
+    lip(0.14, D, -W / 2, 0); lip(0.14, D, W / 2, 0);
+    return g;
+  }
+
+  function snapshot(w, h, build, camPos, look, fov) {
+    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    r.setSize(w, h, false);
+    r.setClearColor(0x000000, 0);
+    if ('outputEncoding' in r) r.outputEncoding = THREE.sRGBEncoding;
+    const scene = new THREE.Scene();
+    addLights(scene);
+    build(scene);
+    const cam = new THREE.PerspectiveCamera(fov, w / h, 0.1, 30);
+    cam.position.set(...camPos);
+    cam.lookAt(...look);
+    r.render(scene, cam);
+    const url = r.domElement.toDataURL('image/png');
+    r.dispose();
+    if (r.forceContextLoss) r.forceContextLoss();
+    return url;
+  }
+
+  function makeImages() {
+    let seed = 5;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const W = 2.8, D = 2.0;
+    const binCam = [[0, 3.5, 3.0], [0, 0.12, 0.05], 38];
+
+    const binChashu = snapshot(280, 200, (scene) => {
+      scene.add(makeTray(W, D, 0.34));
+      // 斜めに立てかけて並べたチャーシュー
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 5; col++) {
+          const m = new THREE.Mesh(chashuGeo, chashuMats);
+          m.scale.set(1.55, 1.5, 1.55);
+          m.position.set(-1.0 + col * 0.5 + (row % 2) * 0.1, 0.26 + row * 0.02, -0.55 + row * 0.55);
+          m.rotation.set(0.75 + (rnd() - 0.5) * 0.15, (rnd() - 0.5) * 0.5, 0, 'YXZ');
+          scene.add(m);
+        }
+      }
+    }, ...binCam);
+
+    const binNegi = snapshot(280, 200, (scene) => {
+      scene.add(makeTray(W, D, 0.34));
+      for (let i = 0; i < 520; i++) {
+        const m = new THREE.Mesh(negiGeo, negiMats[i % 3]);
+        m.scale.setScalar(2.1);
+        const x = (rnd() - 0.5) * (W - 0.25), z = (rnd() - 0.5) * (D - 0.25);
+        const dome = 0.28 * (1 - Math.pow(x / (W / 2), 2)) * (1 - Math.pow(z / (D / 2), 2));
+        m.position.set(x, 0.1 + dome + rnd() * 0.06, z);
+        m.rotation.set(-Math.PI / 2 + (rnd() - 0.5) * 1.2, (rnd() - 0.5) * 1.2, 0);
+        scene.add(m);
+      }
+    }, ...binCam);
+
+    const flyChashu = snapshot(96, 96, (scene) => {
+      const m = new THREE.Mesh(chashuGeo, chashuMats);
+      m.rotation.set(1.0, 0.2, 0, 'YXZ');
+      scene.add(m);
+    }, [0, 0.55, 0.55], [0, 0, 0], 40);
+
+    const flyNegi = snapshot(96, 96, (scene) => {
+      const g = negiClump(77);
+      scene.add(g);
+    }, [0, 0.45, 0.4], [0, 0.02, 0], 40);
+
+    return { binChashu, binNegi, flyChashu, flyNegi };
+  }
+
   // ---------- 公開API ----------
   let kitchen = null;   // 厨房正面のどんぶり
   let counter = null;   // カウンターに出したラーメン
@@ -337,6 +436,7 @@ const Bowl3D = (() => {
     kitchen = makeView(kitchenHost, seatCount, 'kitchen3d');
     if (!kitchen) return false;
     counter = makeView(counterHost, seatCount, 'counter3d');
+    try { api.images = makeImages(); } catch (e) { api.images = null; }
     api.ok = true;
     return true;
   }
@@ -369,6 +469,6 @@ const Bowl3D = (() => {
     return kitchen.pieceScreenPos(slot, key, index, el);
   }
 
-  const api = { ok: false, init, draw, drawCounter, pieceScreenPos };
+  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos };
   return api;
 })();

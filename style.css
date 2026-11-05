@@ -379,8 +379,9 @@ body {
   text-align: center;
   touch-action: manipulation;
 }
-.bin svg { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 2px #0005); }
-.bin.pop svg { animation: binpop .18s; }
+.bin .bin-img { display: block; width: 100%; height: auto; filter: drop-shadow(0 3px 2px #0005); }
+.bin.pop .bin-img { animation: binpop .18s; }
+.fly-img { width: 30px; height: 30px; display: block; transform: translate(-3px, -4px); }
 .bin-name {
   display: inline-block; margin-top: 2px;
   background: #fff; border: 1px solid #888; border-radius: 10px;

@@ -22,9 +22,6 @@ const MENU = {
   negiramen:  { name: 'ネギラーメン',         price: 950,  weight: 3, rec: { chashu: 1, negi: 3 } },
   negichashu: { name: 'ネギチャーシューメン', price: 1250, weight: 2, rec: { chashu: 4, negi: 3 } },
 };
-// どのメニューより多くのせたら「まちがい」→ ゴミ
-const TOP_MAX = {};
-for (const t of TOPPINGS) TOP_MAX[t.key] = Math.max(...Object.values(MENU).map((m) => m.rec[t.key]));
 
 const FACES = ['👨', '👩', '👴', '👵', '🧑', '👦', '👧', '🧔', '👱', '👨‍🦰', '👩‍🦱', '🧑‍💼', '👷', '🧑‍🎓'];
 
@@ -262,29 +259,37 @@ function takeReadyNoodle() {
 }
 
 // トッピング：什器から具が飛び出して、選択中のどんぶりへ飛んでいく
+// ワンタップで、そのどんぶりのお客さんの注文どおりの量がのる。
+// 同じ具を2回のせると「のせすぎ」でゴミになる
 function addTopping(key) {
   const b = activeBowl();
   if (!b) { toast('どんぶりがありません'); return; }
   if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
-  b.tops[key]++;
+  const c = S.seats[S.active];
+  const amount = c ? MENU[c.order].rec[key] : 1;
+  const name = TOPPINGS.find((t) => t.key === key).name;
   sfx.tap();
-  const over = b.tops[key] > TOP_MAX[key];
-  flyTopping(key, b, S.active, !over);
-  if (over) {
+  if (b.tops[key] > 0) {
+    flyTopping(key, b, S.active, b.tops[key], false);
     S.bowls[S.active] = newBowl();
-    const name = TOPPINGS.find((t) => t.key === key).name;
     throwAway(`${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
+    return;
   }
+  b.tops[key] = amount;
+  for (let n = 0; n < amount; n++) {
+    setTimeout(() => flyTopping(key, b, S.bowls.indexOf(b), n, true), n * 90);
+  }
+  b.fly[key] += amount;   // 着地するまでは描かない
 }
 
-function flyTopping(key, b, slot, land) {
+function flyTopping(key, b, slot, index, land) {
+  if (slot < 0) { if (land) b.fly[key] = Math.max(0, b.fly[key] - 1); return; }  // どんぶりがもうない
   const bin = binEls[key];
   bin.classList.remove('pop');
   void bin.offsetWidth;
   bin.classList.add('pop');
 
-  const index = b.tops[key] - 1;
-  const from = bin.querySelector('svg').getBoundingClientRect();
+  const from = bin.querySelector('.bin-img').getBoundingClientRect();
   const bowl = bowlEls[slot].bowl.getBoundingClientRect();
   const [px, py] = TOP_POS[key][index % TOP_POS[key].length];
   const sx = from.left + from.width / 2, sy = from.top + from.height * 0.45;
@@ -300,9 +305,9 @@ function flyTopping(key, b, slot, land) {
 
   const el = document.createElement('div');
   el.className = 'fly';
-  el.innerHTML = `<div class="top ${key}"></div>`;
+  const img = Bowl3D.images && Bowl3D.images[key === 'chashu' ? 'flyChashu' : 'flyNegi'];
+  el.innerHTML = img ? `<img class="fly-img" src="${img}" alt="">` : `<div class="top ${key}"></div>`;
   document.body.appendChild(el);
-  if (land) b.fly[key]++;
 
   const finish = () => {
     el.remove();
@@ -579,6 +584,7 @@ function buildUI() {
       tops: slot.querySelector('.tops'), info: slot.querySelector('.bowl-info'), key: '' });
   }
 
+
   // どんぶりを3Dで描く（使えない環境では2Dのまま）
   if (Bowl3D.init && Bowl3D.init(area.parentElement, $('shop'), SEAT_COUNT)) $('game').classList.add('three');
 
@@ -587,10 +593,14 @@ function buildUI() {
   for (const t of TOPPINGS) {
     const el = document.createElement('div');
     el.className = 'bin';
+    el.dataset.key = t.key;
     el.innerHTML = `${binSVG(t.key)}<div class="bin-name">${t.name}<span class="key">[${t.hotkey}]</span></div>`;
     el.addEventListener('pointerdown', () => addTopping(t.key));
     ing.appendChild(el);
     binEls[t.key] = el;
+    const img3d = Bowl3D.images && Bowl3D.images[t.key === 'chashu' ? 'binChashu' : 'binNegi'];
+    if (img3d) el.querySelector('svg').outerHTML = `<img class="bin-img" src="${img3d}" alt="${t.name}">`;
+    else el.querySelector('svg').classList.add('bin-img');
   }
   // コップはカウンターの左側
   waterEl = $('cups');
@@ -795,7 +805,7 @@ function showTitle() {
       <li>🍜 <b>麺茹で機</b>の空いている穴をタップで<b>麺を入れる</b>（6玉まで同時に茹でられます）</li>
       <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
       <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
-      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 選んでいるどんぶりへ飛んでいく</li>
+      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → ワンタップで注文どおりの量が、選んでいるどんぶりへ飛んでいく（2回のせるとゴミ）</li>
       <li>🙋 <b>お客さんをタップ</b>すると、その人の前のどんぶりを出します</li>
     </ul>
     <h2>メニュー</h2>
@@ -803,7 +813,7 @@ function showTitle() {
     <h2>ゴミになるもの</h2>
     <ul>
       <li>ピピッの後に放っておいた<b>茹ですぎの麺</b></li>
-      <li>トッピングをのせすぎたラーメン、<b>注文とちがうラーメン</b></li>
+      <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
     </ul>
     <p style="font-size:12px;color:#666">キー操作：G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
     <button class="btn" id="startBtn">開店！</button>`;
