@@ -186,13 +186,14 @@ const sfx = {
         const d = sfxNoise.getChannelData(0);
         for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
       }
-      const t0 = a.currentTime, dur = 0.75;
+      const t0 = a.currentTime, dur = 0.55;
       const src = a.createBufferSource(); src.buffer = sfxNoise; src.loop = true;
       const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
       bp.frequency.setValueAtTime(5500, t0); bp.frequency.exponentialRampToValueAtTime(1800, t0 + dur);
       const gn = a.createGain();
-      gn.gain.setValueAtTime(0.0001, t0); gn.gain.linearRampToValueAtTime(0.28, t0 + 0.04);
-      gn.gain.setValueAtTime(0.22, t0 + 0.2); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      // タップした瞬間に「ジュッ」と立ち上がる
+      gn.gain.setValueAtTime(0.32, t0);
+      gn.gain.setValueAtTime(0.24, t0 + 0.12); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
       // 「ジュ」のざらつき：音量を細かくふるわせる
       const lfo = a.createOscillator(), lg = a.createGain();
       lfo.frequency.value = 38; lg.gain.value = 0.08;
@@ -201,7 +202,7 @@ const sfx = {
       src.start(t0); src.stop(t0 + dur + 0.05); lfo.start(t0); lfo.stop(t0 + dur + 0.05);
       // 泡がはじける小さな音
       for (let k = 0; k < 7; k++) {
-        const t = t0 + 0.05 + Math.random() * 0.5;
+        const t = t0 + 0.02 + Math.random() * 0.35;
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(900 + Math.random() * 900, t); o.frequency.exponentialRampToValueAtTime(400, t + 0.03);
         og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
