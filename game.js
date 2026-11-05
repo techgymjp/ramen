@@ -378,6 +378,26 @@ const sfx = {
       o.connect(og); og.connect(a.destination); o.start(t + 0.14); o.stop(t + 0.34);
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // 麺をどんぶりのスープに入れる「ジャボッ」：麺がスープに沈む重い水音
+  menDrop: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      noiseBurst(a, t, 0.22, 0.4, 'lowpass', 2400, 400);          // ジャッ
+      const o = a.createOscillator(), og = a.createGain();          // ボッ
+      o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.12);
+      og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.35, t + 0.005);
+      og.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.2);
+      for (let k = 0; k < 3; k++) {                                  // ちゃぷっ
+        const tt = t + 0.1 + k * 0.06;
+        const b = a.createOscillator(), bg = a.createGain();
+        b.type = 'sine'; b.frequency.setValueAtTime(500 + k * 120, tt); b.frequency.exponentialRampToValueAtTime(1100, tt + 0.04);
+        bg.gain.setValueAtTime(0.08, tt); bg.gain.exponentialRampToValueAtTime(0.001, tt + 0.05);
+        b.connect(bg); bg.connect(a.destination); b.start(tt); b.stop(tt + 0.06);
+      }
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -582,7 +602,7 @@ function flyTebo(slotEl, target, b) {
   el.style.setProperty('--hs', size + 'px');
   el.innerHTML = '<div class="tebo"><div class="noodle"></div><div class="handle"></div></div>';
   document.body.appendChild(el);
-  const done = () => { el.remove(); b.menFly = false; };
+  const done = () => { el.remove(); b.menFly = false; sfx.menDrop(); };   // 麺がスープに入る「ジャボッ」
   if (!el.animate) { done(); return; }
   const at = (x, y, sc = 1.1, r = 0) => ({ transform: `translate(${x}px, ${y}px) scale(${sc}) rotate(${r}deg)` });
   const anim = el.animate([
@@ -1407,7 +1427,7 @@ document.addEventListener('keydown', (ev) => {
 // ---------- 効果音を前もって作っておく ----------
 // 音をその場で組み立てると、スマホでは鳴るまでに少し時間がかかるので、
 // ページを開いたときに効果音を録音しておき、タップした瞬間はそれを再生するだけにする
-const SFX_PRELOAD = ['pipi', 'chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
+const SFX_PRELOAD = ['pipi', 'menDrop', 'chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
 async function preloadSfx() {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OAC) return;
