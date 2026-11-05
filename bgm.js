@@ -5,6 +5,7 @@
 // ストリングス、裏拍のギターっぽいコード、ドラム、エコー。
 // =====================================================================
 const BGM = (() => {
+  const BGM_VOL = 0.08;   // 効果音が聞こえるように控えめ
   const BPM = 108;
   const BEAT = 60 / BPM;
   const BAR = BEAT * 4;
@@ -55,7 +56,7 @@ const BGM = (() => {
     if (ctx) return;
     ctx = audioCtx;
     master = ctx.createGain();
-    master.gain.value = 0.22;
+    master.gain.value = BGM_VOL;
     master.connect(ctx.destination);
     // エコー（歌謡曲らしい残響）
     echoIn = ctx.createGain();
@@ -196,7 +197,7 @@ const BGM = (() => {
     barIdx = 0;
     nextBarTime = ctx.currentTime + 0.1;
     master.gain.cancelScheduledValues(ctx.currentTime);
-    master.gain.setValueAtTime(0.22, ctx.currentTime);
+    master.gain.setValueAtTime(BGM_VOL, ctx.currentTime);
     tick();
     timer = setInterval(tick, 150);
   }

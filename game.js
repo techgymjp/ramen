@@ -651,6 +651,11 @@ function binSVG(key) {
   </svg>`;
 }
 
+// 長いメニュー名は「ネギ／チャーシュー／メン」の切れ目で折り返す
+function wbrName(name) {
+  return name.replace('ネギ', 'ネギ<wbr>').replace('チャーシュー', 'チャーシュー<wbr>').replace(/<wbr>$/, '');
+}
+
 // 1250 → 千二百五拾円
 function kanjiYen(n) {
   const d = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
@@ -850,7 +855,7 @@ function render() {
     e.slot.classList.toggle('active', !!b && i === S.active);
     if (!b) { e.slip.innerHTML = ''; e.tops.innerHTML = ''; continue; }
     // 伝票（席番号と注文）
-    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm">${MENU[c.order].name}</span>` : '';
+    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm">${wbrName(MENU[c.order].name)}</span>` : '';
     e.bowl.classList.toggle('has-soup', b.soup);
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
