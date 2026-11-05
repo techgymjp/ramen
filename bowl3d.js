@@ -362,12 +362,18 @@ const Bowl3D = (() => {
     return g;
   }
 
+  // 画像化用のレンダラー（1つを使い回す）
+  let snapR = null;
   function snapshot(w, h, build, camPos, look, fov) {
-    const r = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
-    r.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    if (!snapR) {
+      snapR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+      snapR.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+      snapR.setClearColor(0x000000, 0);
+      if ('outputEncoding' in snapR) snapR.outputEncoding = THREE.sRGBEncoding;
+    }
+    const r = snapR;
     r.setSize(w, h, false);
-    r.setClearColor(0x000000, 0);
-    if ('outputEncoding' in r) r.outputEncoding = THREE.sRGBEncoding;
+    r.clear();
     const scene = new THREE.Scene();
     addLights(scene);
     build(scene);
@@ -375,10 +381,207 @@ const Bowl3D = (() => {
     cam.position.set(...camPos);
     cam.lookAt(...look);
     r.render(scene, cam);
-    const url = r.domElement.toDataURL('image/png');
-    r.dispose();
-    if (r.forceContextLoss) r.forceContextLoss();
-    return url;
+    return r.domElement.toDataURL('image/png');
+  }
+
+  // ---------- お客さん（オリジナルのちびキャラ） ----------
+  const PEOPLE = [
+    { skin: 0xf6d2b3, hair: 0x2b1d14, style: 'short', shirt: 0x2f6db5 },
+    { skin: 0xf3cfb0, hair: 0x3a2416, style: 'long', shirt: 0xd9566b },
+    { skin: 0xe8b98f, hair: 0xbdbdbd, style: 'bald', shirt: 0x7a6a4f, glasses: true, mustache: true },
+    { skin: 0xf6d2b3, hair: 0x9a9a9a, style: 'bun', shirt: 0x8a5ba8, glasses: true },
+    { skin: 0xc98e64, hair: 0x1d1410, style: 'short', shirt: 0xf0b429, cap: 0xd33b2c },
+    { skin: 0xf6d2b3, hair: 0xc9a15a, style: 'long', shirt: 0x3fa37a },
+    { skin: 0xe8b98f, hair: 0x2b1d14, style: 'short', shirt: 0x334155, tie: true, glasses: true },
+    { skin: 0xf3cfb0, hair: 0x5a3a22, style: 'bun', shirt: 0xf28c38 },
+    { skin: 0xc98e64, hair: 0x2b1d14, style: 'helmet', shirt: 0x4b7bd1 },
+    { skin: 0xf6d2b3, hair: 0x6b3b1f, style: 'short', shirt: 0xe4e4e4, tie: true },
+    { skin: 0xe8b98f, hair: 0x1d1410, style: 'long', shirt: 0x5b5bd6, glasses: true },
+    { skin: 0xf3cfb0, hair: 0xd8d8d8, style: 'bald', shirt: 0x2e7d4f },
+  ];
+  const matCache = {};
+  function mat(color, opts) {
+    const k = color + JSON.stringify(opts || {});
+    if (!matCache[k]) matCache[k] = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55 }, opts || {}));
+    return matCache[k];
+  }
+  const PG = {
+    head: new THREE.SphereGeometry(0.55, 32, 24),
+    ear: new THREE.SphereGeometry(0.11, 12, 10),
+    eye: new THREE.SphereGeometry(0.075, 12, 10),
+    eyeHi: new THREE.SphereGeometry(0.02, 8, 6),
+    nose: new THREE.SphereGeometry(0.045, 10, 8),
+    arc: new THREE.TorusGeometry(0.075, 0.019, 6, 16, Math.PI),
+    smile: new THREE.TorusGeometry(0.1, 0.02, 6, 16, Math.PI),
+    brow: new THREE.BoxGeometry(0.17, 0.035, 0.03),
+    flat: new THREE.BoxGeometry(0.15, 0.028, 0.03),
+    cheek: new THREE.CircleGeometry(0.085, 16),
+    hairCap: new THREE.SphereGeometry(0.585, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.52),
+    hairBack: new THREE.CylinderGeometry(0.585, 0.62, 0.95, 24, 1, true, Math.PI / 2, Math.PI),
+    bun: new THREE.SphereGeometry(0.2, 16, 12),
+    tuft: new THREE.SphereGeometry(0.2, 12, 10),
+    capTop: new THREE.SphereGeometry(0.6, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.45),
+    brim: new THREE.CylinderGeometry(0.42, 0.42, 0.04, 24, 1, false, -Math.PI / 2, Math.PI),
+    helmetRim: new THREE.TorusGeometry(0.6, 0.05, 8, 32),
+    lens: new THREE.TorusGeometry(0.105, 0.016, 8, 20),
+    bridge: new THREE.BoxGeometry(0.1, 0.02, 0.02),
+    neck: new THREE.CylinderGeometry(0.17, 0.19, 0.3, 16),
+    shoulders: new THREE.SphereGeometry(0.72, 32, 16),
+    torso: new THREE.CylinderGeometry(0.7, 0.76, 1.1, 32),
+    tie: new THREE.BoxGeometry(0.12, 0.5, 0.03),
+    collar: new THREE.TorusGeometry(0.2, 0.05, 8, 20),
+    drop: new THREE.SphereGeometry(0.06, 12, 10),
+    mouthO: new THREE.SphereGeometry(0.075, 14, 10),
+    stick: new THREE.CylinderGeometry(0.012, 0.016, 1.1, 6),
+    noodle: new THREE.CylinderGeometry(0.016, 0.016, 0.42, 6),
+    vein: new THREE.BoxGeometry(0.12, 0.03, 0.03),
+  };
+
+  // expr: normal | wait（イライラ）| angry | hot（熱い！）| eat | happy
+  function buildPerson(p, expr) {
+    const g = new THREE.Group();
+    const add = (geo, m, x, y, z, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1) => {
+      const o = new THREE.Mesh(geo, m);
+      o.position.set(x, y, z); o.rotation.set(rx, ry, rz); o.scale.set(sx, sy, sz);
+      g.add(o); return o;
+    };
+    const skinColor = expr === 'angry' ? new THREE.Color(p.skin).lerp(new THREE.Color(0xff5a4a), 0.28).getHex() : p.skin;
+    const skin = mat(skinColor, { roughness: 0.6 });
+    const shirt = mat(p.shirt, { roughness: 0.75 });
+    const hair = mat(p.hair, { roughness: 0.5 });
+    const dark = mat(0x1a1210, { roughness: 0.3 });
+    const white = mat(0xffffff, { roughness: 0.2 });
+
+    // 体
+    add(PG.torso, shirt, 0, 0.55, 0);
+    add(PG.shoulders, shirt, 0, 1.1, 0, 0, 0, 0, 1, 0.5, 0.78);
+    add(PG.neck, skin, 0, 1.33, 0);
+    if (p.tie) {
+      add(PG.collar, white, 0, 1.24, 0.12, Math.PI / 2 - 0.3, 0, 0, 1.2, 1, 1);
+      add(PG.tie, mat(0xb3262e), 0, 0.95, 0.55, -0.12, 0, 0);
+    }
+    // 頭
+    const HY = 1.85;
+    add(PG.head, skin, 0, HY, 0);
+    add(PG.ear, skin, -0.55, HY - 0.02, 0, 0, 0, 0, 0.6, 1, 0.8);
+    add(PG.ear, skin, 0.55, HY - 0.02, 0, 0, 0, 0, 0.6, 1, 0.8);
+    add(PG.nose, mat(new THREE.Color(skinColor).multiplyScalar(0.92).getHex()), 0, HY - 0.07, 0.54);
+
+    // 髪・帽子
+    if (p.style === 'short' || p.style === 'long' || p.style === 'bun') {
+      add(PG.hairCap, hair, 0, HY + 0.02, -0.02, -0.12, 0, 0, 1.04, 1.04, 1.04);
+      add(PG.bun, hair, 0, HY + 0.44, 0.26, 0.5, 0, 0, 2.2, 0.6, 1.1);            // 前髪
+      add(PG.bun, hair, -0.38, HY + 0.38, 0.22, 0.5, 0, 0.5, 1.1, 0.6, 1);
+      add(PG.bun, hair, 0.38, HY + 0.38, 0.22, 0.5, 0, -0.5, 1.1, 0.6, 1);
+      if (p.style === 'long') {
+        add(PG.hairBack, hair, 0, HY - 0.35, -0.02);
+        for (const x of [-0.55, 0.55]) add(PG.tuft, hair, x, HY - 0.3, 0.05, 0, 0, 0, 0.55, 1.9, 0.7);  // 横の髪
+      }
+      if (p.style === 'bun') add(PG.bun, hair, 0, HY + 0.55, -0.22);
+    } else if (p.style === 'bald') {
+      add(PG.tuft, hair, -0.47, HY - 0.05, -0.1, 0, 0, 0, 0.5, 0.8, 1);
+      add(PG.tuft, hair, 0.47, HY - 0.05, -0.1, 0, 0, 0, 0.5, 0.8, 1);
+    } else if (p.style === 'helmet') {
+      const y = mat(0xf2c418, { roughness: 0.3 });
+      add(PG.capTop, y, 0, HY + 0.05, 0, -0.12, 0, 0, 1.05, 1.05, 1.05);
+      add(PG.helmetRim, y, 0, HY + 0.12, 0.04, Math.PI / 2 - 0.12, 0, 0, 1.05, 1.05, 1);
+    }
+    if (p.cap) {
+      const c = mat(p.cap, { roughness: 0.5 });
+      add(PG.capTop, c, 0, HY + 0.06, 0, -0.18, 0, 0);
+      add(PG.brim, c, 0, HY + 0.2, 0.42, -0.25, 0, 0);
+    }
+
+    // 顔
+    const FZ = 0.5, EY = HY + 0.05;
+    const eyesOpen = () => {
+      for (const x of [-0.19, 0.19]) {
+        add(PG.eye, dark, x, EY, FZ, 0, 0, 0, 1, 1.2, 0.6);
+        add(PG.eyeHi, white, x + 0.02, EY + 0.03, FZ + 0.04);
+      }
+    };
+    const eyesHappy = () => { for (const x of [-0.19, 0.19]) add(PG.arc, dark, x, EY - 0.02, FZ + 0.01); };
+    const eyesSquint = () => {
+      for (const s of [-1, 1]) {
+        add(PG.flat, dark, s * 0.19, EY + 0.02, FZ + 0.01, 0, 0, s * 0.35, 0.7, 1, 1);
+        add(PG.flat, dark, s * 0.19, EY - 0.03, FZ + 0.01, 0, 0, -s * 0.35, 0.7, 1, 1);
+      }
+    };
+    const brows = (tilt, y = 0.19) => {
+      for (const s of [-1, 1]) add(PG.brow, hair === dark ? dark : mat(p.style === 'bald' ? p.hair : p.hair), s * 0.19, EY + y, FZ - 0.01, 0, 0, s * tilt);
+    };
+    const cheeks = (color = 0xff8a8a, op = 0.55) => {
+      for (const s of [-1, 1]) add(PG.cheek, mat(color, { transparent: true, opacity: op, roughness: 0.9 }), s * 0.31, HY - 0.1, 0.47, 0, s * 0.55, 0);
+    };
+    const mouthY = HY - 0.2;
+    if (expr === 'normal') {
+      eyesOpen(); brows(0.05);
+      add(PG.smile, dark, 0, mouthY + 0.04, FZ - 0.01, 0, 0, Math.PI, 0.8, 0.7, 1);
+    } else if (expr === 'wait') {
+      eyesOpen(); brows(-0.25, 0.2);
+      add(PG.flat, dark, 0, mouthY, FZ + 0.01, 0, 0, 0.08);
+      add(PG.drop, mat(0x8fd3ff, { transparent: true, opacity: 0.85, roughness: 0.1 }), 0.5, HY + 0.25, 0.25, 0, 0, 0, 0.8, 1.3, 0.8);
+    } else if (expr === 'angry') {
+      eyesOpen(); brows(-0.45, 0.17);
+      add(PG.smile, dark, 0, mouthY - 0.05, FZ - 0.01, 0, 0, 0, 0.8, 0.7, 1);
+      const red = mat(0xe02020);
+      for (const r of [0.6, -0.6]) add(PG.vein, red, 0.36, HY + 0.42, 0.33, 0, 0.5, r);
+    } else if (expr === 'hot') {
+      eyesSquint(); brows(0.2);
+      add(PG.mouthO, mat(0x5a1414), 0, mouthY, FZ, 0, 0, 0, 1, 1.2, 0.5);
+      cheeks(0xff6a5a, 0.6);
+      const blue = mat(0x8fd3ff, { transparent: true, opacity: 0.85, roughness: 0.1 });
+      add(PG.drop, blue, -0.52, HY + 0.2, 0.25, 0, 0, 0, 0.8, 1.3, 0.8);
+      add(PG.drop, blue, 0.52, HY + 0.1, 0.25, 0, 0, 0, 0.7, 1.1, 0.7);
+    } else if (expr === 'eat') {
+      eyesHappy(); brows(0.1, 0.21); cheeks();
+      add(PG.mouthO, mat(0x5a1414), 0, mouthY, FZ, 0, 0, 0, 1.1, 0.9, 0.5);
+      const nd = mat(0xe0ad3c, { roughness: 0.4 });
+      for (const x of [-0.04, 0, 0.04]) add(PG.noodle, nd, x, mouthY - 0.2, FZ + 0.05, 0.1, 0, x * 2);
+      const wood = mat(0xd9b27a, { roughness: 0.6 });
+      add(PG.stick, wood, 0.22, mouthY - 0.28, FZ + 0.15, 0.2, 0, -0.5);
+      add(PG.stick, wood, 0.28, mouthY - 0.3, FZ + 0.13, 0.2, 0, -0.42);
+    } else { // happy
+      eyesHappy(); brows(0.1, 0.21); cheeks();
+      add(PG.smile, dark, 0, mouthY + 0.05, FZ - 0.01, 0, 0, Math.PI, 1.1, 1, 1);
+    }
+    if (p.glasses && expr !== 'eat' && expr !== 'happy') {
+      const fr = mat(0x2a2a2a, { roughness: 0.3 });
+      add(PG.lens, fr, -0.19, EY, FZ + 0.06);
+      add(PG.lens, fr, 0.19, EY, FZ + 0.06);
+      add(PG.bridge, fr, 0, EY + 0.02, FZ + 0.07);
+    } else if (p.glasses) {
+      const fr = mat(0x2a2a2a, { roughness: 0.3 });
+      add(PG.lens, fr, -0.19, EY - 0.01, FZ + 0.06);
+      add(PG.lens, fr, 0.19, EY - 0.01, FZ + 0.06);
+      add(PG.bridge, fr, 0, EY + 0.01, FZ + 0.07);
+    }
+    if (p.mustache) add(PG.brow, hair, 0, HY - 0.13, FZ + 0.03, 0, 0, 0, 1.3, 1.6, 1);
+    return g;
+  }
+
+  // トップページ用：具をのせたラーメン1杯の絵
+  let ramenUrl = null;
+  function ramenImage() {
+    if (!ramenUrl) {
+      ramenUrl = snapshot(360, 270, (scene) => {
+        const s = makeScene(0);
+        s.scene.children.filter((o) => o.isLight).forEach((l) => s.scene.remove(l));
+        s.steam.forEach((sp) => { sp.visible = false; });
+        scene.add(s.scene);
+      }, [0, 1.6, 2.7], [0, 0.4, 0], 40);
+    }
+    return ramenUrl;
+  }
+
+  const personCache = {};
+  function person(idx, expr) {
+    const k = idx + ':' + expr;
+    if (!personCache[k]) {
+      personCache[k] = snapshot(128, 160, (scene) => scene.add(buildPerson(PEOPLE[idx % PEOPLE.length], expr)),
+        [0, 1.9, 6], [0, 1.74, 0], 16);
+    }
+    return personCache[k];
   }
 
   function makeImages() {
@@ -469,6 +672,6 @@ const Bowl3D = (() => {
     return kitchen.pieceScreenPos(slot, key, index, el);
   }
 
-  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos };
+  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos, person, personCount: PEOPLE.length, ramenImage };
   return api;
 })();

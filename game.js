@@ -60,7 +60,6 @@ function newGame() {
     pot: Array(POT_CAP).fill(null),   // 茹で鍋の中のてぼ: null | { t: 茹で経過秒, beeped }
     bowls: Array(SEAT_COUNT).fill(null),  // 席ごとのどんぶり（お客さんがいる席だけ）
     active: -1,                            // 選択中のどんぶり（席番号）
-    water: false,      // お冷を持っているか
     spawnT: 1.5,
     sales: {},
   };
@@ -147,7 +146,12 @@ function makeCustomer() {
     qMax: rand(40, 70) * (0.7 + S.rep / 10),   // 評判が高いほど長く並んでくれる
     pat: 0,
     patMax: rand(30, 42),
-    water: false,
+    look: Math.floor(Math.random() * (Bowl3D.personCount || 12)),  // 3Dの見た目
+    water: false,      // コップに水が入っているか
+    glass: false,      // カウンターにコップが置いてあるか
+    waterLvl: 0,       // コップの水の量（0〜1）
+    drinker: Math.random() < 0.35,          // 水をよく飲む人（空になる）
+    drinkRate: rand(1 / 14, 1 / 8),
     state: 'waiting',  // waiting | hot（ラーメンは来たが水がない）| eating | leaving
     timer: 0,
     react: '',
@@ -174,11 +178,25 @@ function throwAway(msg, cost) {
   sfx.trash();
 }
 
-// カウンター左のコップを取る（もう一度タップで戻す）。
-// 料理の途中でも持てて、お客さんをタップすればいつでも水を出せる
+// カウンター左のコップをタップ：水が必要なお客さんの左側に、水の入ったコップを出す
+// （熱いラーメンを前に待っている人 → 水がまだの人 → コップが空になった人の順。同じなら長く待っている人）
 function pickWater() {
-  S.water = !S.water;
-  sfx.water();
+  let best = -1, bestScore = -1;
+  S.seats.forEach((c, i) => {
+    if (!c || c.water || c.state === 'leaving') return;
+    const score = (c.state === 'hot' ? 3000 : !c.glass ? 2000 : 1000) + c.pat;
+    if (score > bestScore) { bestScore = score; best = i; }
+  });
+  if (best < 0) { toast('お水が必要なお客さんはいません'); return; }
+  giveWater(S.seats[best]);
+}
+
+// カウンターのコップをタップ：空なら水を補充する
+function tapGlass(i) {
+  const c = S.seats[i];
+  if (!c) return;
+  if (c.water) { toast('まだお水が入っています'); return; }
+  giveWater(c);
 }
 
 // どんぶりをタップ：選択する。空ならスープを入れる
@@ -353,8 +371,6 @@ function flyTopping(key, b, slot, index, land) {
 function tapCustomer(seatIdx) {
   const c = S.seats[seatIdx];
   if (!c) return;
-  // コップを持っていて、まだ水がないお客さんなら水を出す
-  if (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving') { giveWater(c); return; }
   if (c.state !== 'waiting') return;
   const b = S.bowls[seatIdx];
   if (!b || !b.men) { toast('このお客さんのラーメンはまだできていません'); return; }
@@ -384,10 +400,11 @@ function tapCustomer(seatIdx) {
 }
 
 function giveWater(c) {
-  if (c.water || c.state === 'eating' || c.state === 'leaving') { toast('お水はもう出しています'); return; }
+  if (c.water || c.state === 'leaving') { toast('お水はもう出しています'); return; }
+  if (!c.glass) c.patMax += WATER_BONUS;   // 最初の1杯で少し長く待ってくれる
   c.water = true;
-  c.patMax += WATER_BONUS;
-  S.water = false;   // コップを渡したので手は空く
+  c.glass = true;
+  c.waterLvl = 1;
   sfx.water();
   if (c.state === 'hot') startEating(S.seats.indexOf(c), c);
 }
@@ -463,8 +480,18 @@ function update(dt) {
     const c = S.seats[i];
     if (!c) continue;
     if (c.flashT > 0) c.flashT -= dt;
+    // 水をよく飲む人は、コップが空になる
+    if (c.drinker && c.water && c.state !== 'leaving') {
+      c.waterLvl -= c.drinkRate * dt;
+      if (c.waterLvl <= 0) {
+        c.waterLvl = 0; c.water = false;
+        c.flash = 'お水おかわり！💧'; c.flashT = 1.8;
+        sfx.door();
+      }
+    }
     if (c.state === 'waiting' || c.state === 'hot') {
-      c.pat += dt;
+      // コップが空のままだとイライラが早く進む
+      c.pat += dt * (c.glass && !c.water ? 1.5 : 1);
       if (c.pat >= c.patMax) {
         if (c.state === 'hot') throwAway('食べずに帰ってしまった…ラーメンはゴミに', 0);
         const b = S.bowls[i];
@@ -551,7 +578,7 @@ function binSVG(key) {
 
 function recipeText(rec) {
   const names = TOPPINGS.filter((t) => rec[t.key]).map((t) => t.name);
-  return names.length ? names.join('・') + 'を1タップ' : 'トッピングなし（そのまま）';
+  return names.length ? names.join('・') + 'を1タップ' : 'そのまま';
 }
 
 function buildUI() {
@@ -565,10 +592,12 @@ function buildUI() {
   for (let i = 0; i < SEAT_COUNT; i++) {
     const root = document.createElement('div');
     root.className = 'seat';
-    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div><div class="served-spot"></div><div class="glass"><div class="ice"></div></div>';
+    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div><div class="served-spot"></div><div class="glass"><div class="wlvl"></div><div class="ice"></div></div>';
     root.addEventListener('pointerdown', () => tapCustomer(i));
+    root.querySelector('.glass').addEventListener('pointerdown', (ev) => { ev.stopPropagation(); tapGlass(i); });
     seats.appendChild(root);
-    seatEls.push({ root, top: root.children[0], cust: root.children[1], spot: root.querySelector('.served-spot'), key: '' });
+    seatEls.push({ root, top: root.children[0], cust: root.children[1], spot: root.querySelector('.served-spot'),
+      wlvl: root.querySelector('.wlvl'), key: '' });
   }
 
   // 麺茹で機（ステンレスの箱に、てぼ6つ）
@@ -643,8 +672,6 @@ function render() {
   $('rep').textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars) + ' ' + S.rep.toFixed(1);
   $('qcount').textContent = S.queue.length;
   $('garbage').textContent = S.garbage;
-  waterEl.classList.toggle('active', S.water);
-  $('game').classList.toggle('hand-water', S.water);
 
   // 行列
   const qKey = S.queue.map((c) => c.id + (c.qWait > c.qMax * 0.7 ? '!' : '')).join(',');
@@ -652,8 +679,11 @@ function render() {
   if (qEl.dataset.key !== qKey) {
     qEl.dataset.key = qKey;
     const shown = S.queue.slice(0, 14);
-    qEl.innerHTML = shown.map((c) =>
-      `<span class="q-person${c.qWait > c.qMax * 0.7 ? ' impatient' : ''}">${c.face}</span>`).join('') +
+    qEl.innerHTML = shown.map((c) => {
+      const imp = c.qWait > c.qMax * 0.7;
+      const face = Bowl3D.ok ? `<img class="q3d" src="${Bowl3D.person(c.look, imp ? 'wait' : 'normal')}" alt="">` : c.face;
+      return `<span class="q-person${imp ? ' impatient' : ''}">${face}</span>`;
+    }).join('') +
       (S.queue.length > shown.length ? `<span class="q-more">+${S.queue.length - shown.length}</span>` : '');
   }
 
@@ -664,19 +694,25 @@ function render() {
     e.root.classList.toggle('has-cust', !!c);
     e.root.classList.toggle('has-dish', !!c && (c.state === 'hot' || c.state === 'eating'));
     e.root.classList.toggle('eating', !!c && c.state === 'eating');
-    e.root.classList.toggle('has-water', !!c && c.water);
+    e.root.classList.toggle('has-water', !!c && c.glass);
+    e.root.classList.toggle('glass-empty', !!c && c.glass && !c.water);
+    if (c && c.glass) e.wlvl.style.height = (c.waterLvl * 72) + '%';
     if (!c) {
       if (e.key !== '') { e.key = ''; e.top.innerHTML = ''; e.cust.textContent = ''; }
       e.root.classList.remove('target');
       continue;
     }
     const flash = c.flashT > 0 ? c.flash : '';
-    const key = c.id + c.state + c.water + flash;
+    const expr = exprOf(c);
+    const key = c.id + c.state + c.water + c.glass + flash + expr;
     if (e.key !== key) {
       e.key = key;
-      // 3Dが使えるときは、出したラーメンはカウンターの上に3Dで表示する
-      const dish = Bowl3D.ok ? '' : c.state === 'eating' ? '🍜' : c.state === 'hot' ? '♨️' : '';
-      e.cust.innerHTML = c.face + dish;
+      if (Bowl3D.ok) {
+        // 3Dのお客さん（出したラーメンはカウンターの上に3Dで表示する）
+        e.cust.innerHTML = `<img class="cust3d" src="${Bowl3D.person(c.look, expr)}" alt="">`;
+      } else {
+        e.cust.innerHTML = c.face + (c.state === 'eating' ? '🍜' : c.state === 'hot' ? '♨️' : '');
+      }
       if (c.state === 'waiting' || c.state === 'hot') {
         const m = MENU[c.order];
         const head = flash ? `<div class="react bad">${flash}</div>`
@@ -684,7 +720,7 @@ function render() {
         const body = c.state === 'hot'
           ? '<div class="bubble">💧 お水まだ？<div class="pbar"><div></div></div></div>'
           : `<div class="bubble">${m.name}<div class="rec">${recipeText(m.rec)}</div>
-            ${c.water ? '' : '<div class="nowater">💧お水まだ</div>'}<div class="pbar"><div></div></div></div>`;
+            ${c.water ? '' : c.glass ? '<div class="nowater">💧おかわり！</div>' : '<div class="nowater">💧お水まだ</div>'}<div class="pbar"><div></div></div></div>`;
         e.top.innerHTML = head + body;
       } else {
         e.top.innerHTML = `<div class="react ${c.reactCls}">${c.react}</div>`;
@@ -696,8 +732,7 @@ function render() {
       bar.style.width = (r * 100) + '%';
       bar.style.background = r > 0.5 ? '#4c4' : r > 0.25 ? '#eb3' : '#e33';
     }
-    const target = (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving')
-      || (!!S.bowls[i] && S.bowls[i].men && c.state === 'waiting');
+    const target = !!S.bowls[i] && S.bowls[i].men && c.state === 'waiting';
     e.root.classList.toggle('target', target);
   }
 
@@ -748,6 +783,16 @@ function render() {
   }
 }
 
+// お客さんの表情
+function exprOf(c) {
+  if (c.state === 'leaving') return c.reactCls === 'good' ? 'happy' : 'angry';
+  if (c.flashT > 0) return c.flash.startsWith('お水') ? 'wait' : 'angry';
+  if (c.state === 'eating') return c.timer < 1 ? 'happy' : 'eat';
+  if (c.state === 'hot') return 'hot';
+  const r = 1 - c.pat / c.patMax;
+  return r > 0.5 ? 'normal' : r > 0.25 ? 'wait' : 'angry';
+}
+
 function render3D() {
   if (!Bowl3D.ok) return;
   const now = performance.now();
@@ -792,6 +837,7 @@ function rank(rep, money) {
 
 function endGame() {
   running = false;
+  $('panel').className = 'panel';
   BGM.stop();
   render();
   let best = 0;
@@ -815,25 +861,55 @@ function endGame() {
     </table>
     <h2>メニュー別</h2>
     <table>${rows}</table>
-    <button class="btn" id="startBtn">もう一度営業する</button>`;
+    <div class="btn-row">
+      <button class="btn sub" id="topBtn">トップへ</button>
+      <button class="btn" id="startBtn">もう一度営業する</button>
+    </div>`;
+  $('topBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
   $('overlay').classList.remove('hidden');
 }
 
+// ---------- トップページ ----------
 function showTitle() {
+  let best = 0;
+  try { best = Number(localStorage.getItem('ramen-best') || 0); } catch (e) { /* 保存できなくても続行 */ }
+  const ramen = Bowl3D.ok && Bowl3D.ramenImage ? Bowl3D.ramenImage() : '';
+  const people = Bowl3D.ok
+    ? [0, 4, 1, 8, 2].map((k, n) => `<img src="${Bowl3D.person(k, n === 2 ? 'happy' : n % 2 ? 'wait' : 'normal')}" alt="">`).join('')
+    : '👨👩👴🧑👧';
+  $('panel').className = 'panel top';
+  $('panel').innerHTML = `
+    <div class="top-noren"><span>ら</span><span>ー</span><span>め</span><span>ん</span></div>
+    <h1 class="top-title">行列のできる<br><span>ラーメン店</span></h1>
+    <div class="top-hero">
+      ${ramen ? `<img class="top-ramen" src="${ramen}" alt="ラーメン">` : '<div class="top-ramen-emoji">🍜</div>'}
+    </div>
+    <div class="top-line">${people}</div>
+    <p class="top-lead">注文どおりにラーメンを作って、行列をさばこう！</p>
+    ${best ? `<p class="top-best">最高利益 ${yen(best)}</p>` : ''}
+    <button class="btn" id="startBtn">開店！</button>
+    <button class="btn sub" id="helpBtn">遊び方</button>`;
+  $('startBtn').addEventListener('click', startGame);
+  $('helpBtn').addEventListener('click', showHelp);
+}
+
+// ---------- 遊び方ページ ----------
+function showHelp() {
   const menuRows = Object.values(MENU).map((m) =>
     `<tr><td>${m.name}</td><td>${recipeText(m.rec)}</td><td>${yen(m.price)}</td></tr>`).join('');
+  $('panel').className = 'panel';
   $('panel').innerHTML = `
-    <h1>🍜 行列のできるラーメン店</h1>
+    <h1>遊び方</h1>
     <p>カウンター越しにやってくるお客さんの注文どおりにラーメンを作って出そう！
     お客さんを満足させると評判が上がり、行列がどんどん長くなります。</p>
     <h2>タップするもの</h2>
     <ul>
-      <li>🥛 カウンター左の<b>コップ</b> → お客さんをタップで水を出す。いつでも出せます（ラーメンは熱いので、<b>水がないと食べてくれません</b>）</li>
+      <li>🥛 カウンター左の<b>コップ</b>をタップ → お水が必要なお客さんの左に水を出す（ラーメンは熱いので、<b>水がないと食べてくれません</b>）。水を飲みほして空になったら、<b>コップをタップで補充</b></li>
       <li>🍜 <b>麺茹で機</b>の空いている穴をタップで<b>麺を入れる</b>（6玉まで同時に茹でられます）</li>
       <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
       <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
-      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 1タップで1人前が、選んでいるどんぶりへ飛んでいく（チャーシューメンはチャーシュー、ネギラーメンはネギ、ネギチャーシューメンは両方を1タップずつ。ラーメンはそのまま。2回のせるとゴミ）</li>
+      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 1タップで1人前が、選んでいるどんぶりへ飛んでいく</li>
       <li>🙋 <b>お客さんをタップ</b>すると、その人の前のどんぶりを出します</li>
     </ul>
     <h2>メニュー</h2>
@@ -842,9 +918,14 @@ function showTitle() {
     <ul>
       <li>ピピッの後に放っておいた<b>茹ですぎの麺</b></li>
       <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
+      <li>麺を入れたまま、お客さんが帰ってしまったラーメン</li>
     </ul>
     <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
-    <button class="btn" id="startBtn">開店！</button>`;
+    <div class="btn-row">
+      <button class="btn sub" id="backBtn">もどる</button>
+      <button class="btn" id="startBtn">開店！</button>
+    </div>`;
+  $('backBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
 }
 

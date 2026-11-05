@@ -443,6 +443,29 @@ kbd { font-family: inherit; }
   padding: 10px 30px; border-radius: 30px; cursor: pointer;
 }
 .panel .btn:hover { background: #e74c3c; }
+.panel .btn.sub { background: #fff; color: #8b1a1a; border: 2px solid #c0392b; font-size: 16px; padding: 8px 26px; }
+.panel .btn.sub:hover { background: #fff1ec; }
+.btn-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.btn-row .btn { margin: 14px 0 0; }
+
+/* トップページ */
+.panel.top { text-align: center; padding-top: 0; overflow-x: hidden; background: radial-gradient(#fffaf0, #f6e3c3); }
+.top-noren { display: flex; justify-content: center; gap: 4px; margin: 0 -20px 6px; }
+.top-noren span {
+  width: 54px; height: 46px; background: #1e2f6b; color: #fff; font-weight: bold; font-size: 20px;
+  display: flex; align-items: center; justify-content: center; border-radius: 0 0 6px 6px;
+}
+.top-title { font-size: 22px !important; line-height: 1.25; color: #5b3a1f !important; margin: 4px 0 0 !important; }
+.top-title span { font-size: 40px; color: #b3261e; letter-spacing: 4px; text-shadow: 2px 2px 0 #f3c76b; }
+.top-hero { margin: -4px auto 0; }
+.top-ramen { width: 260px; max-width: 80%; height: auto; filter: drop-shadow(0 8px 8px #0003); }
+.top-ramen-emoji { font-size: 90px; }
+.top-line { display: flex; justify-content: center; align-items: flex-end; gap: 2px; margin-top: -6px; font-size: 34px; }
+.top-line img { width: 52px; height: 65px; }
+.top-lead { font-weight: bold; color: #5b3a1f; margin-top: 6px; }
+.top-best { color: #b3261e; font-weight: bold; }
+.panel.top .btn { min-width: 200px; }
+.panel.top .btn.sub { margin-top: 8px; }
 .result-big { font-size: 22px; text-align: center; font-weight: bold; margin: 6px 0; }
 
 @keyframes shake { 0%,100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
@@ -491,15 +514,20 @@ kbd { font-family: inherit; }
 /* カウンターに置いたお冷のグラス */
 .seat .glass {
   display: none;
-  position: absolute; bottom: -12px; left: calc(50% + 30px);
-  width: 18px; height: 26px; z-index: 3; pointer-events: none;
+  position: absolute; bottom: -12px; left: calc(50% - 50px);
+  width: 18px; height: 26px; z-index: 3; cursor: pointer;
   border: 1.5px solid #ffffffcc; border-top-width: 1px;
   border-radius: 2px 2px 4px 4px;
-  background:
-    linear-gradient(90deg, #ffffff88 0 18%, transparent 18% 70%, #ffffff44 70% 80%, transparent 80%),
-    linear-gradient(#0000 0 18%, #cfeaf7cc 18% 100%);
+  background: linear-gradient(90deg, #ffffff88 0 18%, #ffffff22 18% 70%, #ffffff44 70% 80%, #ffffff22 80%);
   box-shadow: 0 2px 2px #0003, inset 0 -3px 0 #ffffff66;
 }
+.seat .glass .wlvl {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 72%;
+  background: #bfe6f7d8; border-radius: 0 0 3px 3px; transition: height .3s;
+}
+.seat.glass-empty .glass { animation: glassblink .6s infinite alternate; }
+.seat.glass-empty .glass .ice { display: none; }
+@keyframes glassblink { to { box-shadow: 0 0 0 3px #4ab3ff, 0 0 10px #4ab3ff; } }
 .seat .glass .ice {
   position: absolute; left: 3px; top: 7px; width: 7px; height: 6px;
   background: #ffffffd0; border-radius: 2px; transform: rotate(15deg);
@@ -517,8 +545,20 @@ kbd { font-family: inherit; }
 
 @media (max-width: 640px) {
   .served-spot { width: 46px; height: 46px; bottom: -28px; }
-  .seat .glass { left: calc(50% + 18px); width: 13px; height: 20px; bottom: -10px; }
+  .seat .glass { left: calc(50% - 34px); width: 13px; height: 20px; bottom: -10px; }
   .seat .glass .ice { left: 2px; top: 5px; width: 5px; height: 4px; }
   .three .seat.has-dish .cust, .three .seat.has-dish .slot-top { transform: translateY(-16px); }
   @keyframes slurp { 0%, 100% { transform: translateY(-16px); } 50% { transform: translateY(-11px) rotate(-3deg); } }
+}
+
+/* 3Dのお客さん */
+.cust3d { display: block; width: 64px; height: 80px; margin-bottom: -2px; }
+.q3d { display: block; width: 26px; height: 33px; }
+.three .seat.has-dish .cust, .three .seat.has-dish .slot-top { transform: none; }
+.three .seat.eating .cust { animation: slurp3d .5s infinite; }
+@keyframes slurp3d { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(4px) rotate(-2deg); } }
+@media (max-width: 640px) {
+  .cust3d { width: 48px; height: 60px; }
+  .q3d { width: 20px; height: 25px; }
+  .three .seat.has-dish .cust, .three .seat.has-dish .slot-top { transform: none; }
 }
