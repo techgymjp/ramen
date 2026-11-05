@@ -749,8 +749,10 @@ span.ord-ic.top { width: 26px; height: 24px; }
 }
 
 /* 3Dのコップ */
-#cups .tray .c3d { width: 24px; height: 34px; flex: 0 0 auto; display: block; filter: drop-shadow(1px 3px 2px rgba(0,0,0,.3)); }
+#cups .tray .c3d { width: 24px; height: 34px; flex: 0 0 auto; display: block; filter: drop-shadow(0 0 0.6px #1d4f73) drop-shadow(0 0 0.6px #1d4f73) drop-shadow(1px 3px 2px rgba(0,0,0,.35)) saturate(1.2); }
 #cups:active .tray .c3d { transform: translateY(1px); }
+/* コップが目立つよう、トレーを少し暗めに */
+#cups { background: linear-gradient(#cfd5da, #8f989f) !important; }
 @media (max-width: 640px) {
   /* スマホ：コップを大きく並べ、トレーの枠から上にはみ出す */
   #cups { margin-top: 4px; height: 22px; padding: 0 !important; overflow: visible; z-index: 5; }
