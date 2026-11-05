@@ -777,3 +777,14 @@ span.ord-ic.top { width: 26px; height: 24px; }
 
 /* ゲームからのメッセージは、コップなどより前に出す */
 #toast { z-index: 50 !important; }
+
+/* 画面が横に広がらないように（飛んでいく具やメッセージがはみ出しても横スクロールしない） */
+html, body { overflow-x: hidden; max-width: 100%; }
+#toast { white-space: normal !important; max-width: 90%; width: max-content; text-align: center; }
+/* スマホ：鍋の列と具材の列の高さをそろえて、すき間をなくす */
+@media (max-width: 640px) {
+  #kitchen { align-items: stretch !important; }
+  .boiler-block { display: flex; flex-direction: column; }
+  .boiler-block #boilers { flex: 1; }
+  .boiler-block .pot { height: auto; }
+}
