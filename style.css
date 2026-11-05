@@ -803,4 +803,4 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 
 /* お客さんへ飛んでいくラーメン */
-.fly-bowl { transform-origin: 0 0; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+.fly-bowl { transform-origin: 50% 50%; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }

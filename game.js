@@ -475,14 +475,17 @@ function serveFly(i, b) {
   el.style.width = w + 'px';
   document.body.appendChild(el);
   beep(700, 0.06, 'triangle', 0.05);
-  const sx = from.left, sy = from.top + from.height / 2 - w * 0.375;
+  // 中心の位置で動かす（拡大縮小も中心を基準にする）
+  const h = w * 0.75;
+  const scx = from.left + from.width / 2, scy = from.top + from.height / 2;
+  const ecx = to.left + to.width / 2, ecy = to.top + to.height / 2;
   const sc = Math.max(0.3, to.width / w);
-  const ex = to.left + to.width / 2 - w / 2, ey = to.top + to.height / 2 - w * 0.375;
-  const top = Math.min(sy, ey) - 60;
+  const peak = Math.min(scy, ecy) - 60;
+  const at = (cx, cy, s) => ({ transform: `translate(${cx - w / 2}px, ${cy - h / 2}px) scale(${s})` });
   const anim = el.animate([
-    { transform: `translate(${sx}px, ${sy}px) scale(1)` },
-    { transform: `translate(${(sx + ex) / 2}px, ${top}px) scale(${(1 + sc) / 2})`, offset: 0.5 },
-    { transform: `translate(${ex}px, ${ey}px) scale(${sc})` },
+    at(scx, scy, 1),
+    { ...at((scx + ecx) / 2, peak, (1 + sc) / 2), offset: 0.5 },
+    at(ecx, ecy, sc),
   ], { duration: 550, easing: 'ease-in-out' });
   anim.onfinish = finish; anim.oncancel = finish;
 }
