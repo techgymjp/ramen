@@ -91,9 +91,31 @@ function toast(msg) {
 
 // ---------- 効果音 ----------
 let actx = null;
-function beep(freq, dur = 0.08, type = 'square', vol = 0.05) {
+function getAudio() {
   try {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
+    if (actx.state === 'suspended') actx.resume();
+  } catch (e) { actx = null; }
+  return actx;
+}
+
+// ---------- BGM（歌謡曲ふう） ----------
+let bgmOn = true;
+try { bgmOn = localStorage.getItem('ramen-bgm') !== 'off'; } catch (e) { /* 保存できなくても続行 */ }
+function updateBgmBtn() {
+  const b = $('bgmBtn');
+  b.textContent = bgmOn ? '🎵 BGM ON' : '🔇 BGM OFF';
+  b.classList.toggle('off', !bgmOn);
+}
+function toggleBgm() {
+  bgmOn = !bgmOn;
+  try { localStorage.setItem('ramen-bgm', bgmOn ? 'on' : 'off'); } catch (e) { /* 保存できなくても続行 */ }
+  if (bgmOn && running) BGM.start(getAudio()); else BGM.stop();
+  updateBgmBtn();
+}
+function beep(freq, dur = 0.08, type = 'square', vol = 0.05) {
+  try {
+    getAudio();
     const o = actx.createOscillator();
     const g = actx.createGain();
     o.type = type; o.frequency.value = freq;
@@ -751,6 +773,7 @@ function startGame() {
   $('queue').dataset.key = 'x';
   $('overlay').classList.add('hidden');
   running = true;
+  if (bgmOn) BGM.start(getAudio());
   lastTs = performance.now();
   requestAnimationFrame(loop);
 }
@@ -765,6 +788,7 @@ function rank(rep, money) {
 
 function endGame() {
   running = false;
+  BGM.stop();
   render();
   let best = 0;
   try {
@@ -815,7 +839,7 @@ function showTitle() {
       <li>ピピッの後に放っておいた<b>茹ですぎの麺</b></li>
       <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
     </ul>
-    <p style="font-size:12px;color:#666">キー操作：G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
+    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
     <button class="btn" id="startBtn">開店！</button>`;
   $('startBtn').addEventListener('click', startGame);
 }
@@ -830,6 +854,7 @@ document.addEventListener('keydown', (ev) => {
   else if (k === 'q') addNoodle();
   else if (k === 'w') takeReadyNoodle();
   else if (k === 'g') pickWater();
+  else if (k === 'm') toggleBgm();
   else {
     const t = TOPPINGS.find((tp) => tp.hotkey.toLowerCase() === k);
     if (t) addTopping(t.key);
@@ -838,3 +863,5 @@ document.addEventListener('keydown', (ev) => {
 
 buildUI();
 showTitle();
+updateBgmBtn();
+$('bgmBtn').addEventListener('click', toggleBgm);

@@ -32,6 +32,11 @@ body {
   font-size: 15px;
 }
 #rep { color: #ffcf3f; letter-spacing: 1px; }
+.hud-btn {
+  background: #3a2414; color: #ffe9c4; border: 1px solid #8a5a2b; border-radius: 12px;
+  font: inherit; font-size: 12px; padding: 1px 10px; cursor: pointer;
+}
+.hud-btn.off { color: #a98f6a; }
 
 /* ---------- 客席（奥） ---------- */
 #shop {
