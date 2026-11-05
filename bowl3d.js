@@ -1026,31 +1026,53 @@ const Bowl3D = (() => {
       scene.add(g);
     }, [0, 0.45, 0.4], [0, 0.02, 0], 40);
 
-    // お冷のコップ（ガラス・水・氷）
-    const glass = snapshot(80, 112, (scene) => {
+    // お冷のコップ（ガラス・水・氷）。水面が揺れ、氷が浮き沈みするコマを何枚か作ってパラパラ漫画で動かす
+    const glassFrame = (ph) => snapshot(80, 112, (scene) => {
       const gl = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.25, 0.9, 32, 1, true),
         new THREE.MeshPhysicalMaterial
-          ? new THREE.MeshPhysicalMaterial({ color: 0xb9dcef, roughness: 0.05, transparent: true, opacity: 0.4, clearcoat: 1, side: THREE.DoubleSide })
-          : new THREE.MeshStandardMaterial({ color: 0xeef8ff, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
+          ? new THREE.MeshPhysicalMaterial({ color: 0xc8e8f6, roughness: 0.05, transparent: true, opacity: 0.35, clearcoat: 1, side: THREE.DoubleSide })
+          : new THREE.MeshStandardMaterial({ color: 0xc8e8f6, transparent: true, opacity: 0.35, side: THREE.DoubleSide }));
       scene.add(gl);
       const bottom = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.08, 32),
-        new THREE.MeshStandardMaterial({ color: 0xdff0fa, transparent: true, opacity: 0.6, roughness: 0.1 }));
+        new THREE.MeshStandardMaterial({ color: 0xdff4fc, transparent: true, opacity: 0.7, roughness: 0.1 }));
       bottom.position.y = -0.41; scene.add(bottom);
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.25, 0.62, 32),
-        new THREE.MeshStandardMaterial({ color: 0x2f8fd0, transparent: true, opacity: 0.85, roughness: 0.05 }));
-      water.position.y = -0.12; scene.add(water);
-      const surf = new THREE.Mesh(new THREE.CircleGeometry(0.285, 32), new THREE.MeshStandardMaterial({ color: 0x7cc6f0, roughness: 0.02 }));
-      surf.rotation.x = -Math.PI / 2; surf.position.y = 0.19; scene.add(surf);
+      // 水（明るい水色）
+      const lvl = 0.17 + Math.sin(ph) * 0.012;
+      const water = new THREE.Mesh(new THREE.CylinderGeometry(0.285, 0.25, lvl + 0.37, 32),
+        new THREE.MeshStandardMaterial({ color: 0x4cc4f4, transparent: true, opacity: 0.9, roughness: 0.05, emissive: 0x0a3a55 }));
+      water.position.y = (lvl - 0.37) / 2; scene.add(water);
+      // 揺れる水面（傾き＋波打つ）
+      const sg = new THREE.CircleGeometry(0.284, 32, 0, Math.PI * 2);
+      const sp = sg.attributes.position;
+      for (let k = 0; k < sp.count; k++) sp.setZ(k, Math.sin(sp.getX(k) * 14 + ph * 2) * 0.012);
+      sg.computeVertexNormals();
+      const surf = new THREE.Mesh(sg, new THREE.MeshStandardMaterial({ color: 0x9fe4ff, roughness: 0.02, emissive: 0x1a5a7a }));
+      surf.rotation.set(-Math.PI / 2 + Math.sin(ph) * 0.12, 0, Math.cos(ph) * 0.1);
+      surf.position.y = lvl; scene.add(surf);
+      const hl = new THREE.Mesh(new THREE.CircleGeometry(0.07, 16), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.8 }));
+      hl.rotation.x = -Math.PI / 2; hl.position.set(-0.12 + Math.sin(ph) * 0.04, lvl + 0.015, -0.05); scene.add(hl);
+      // 縁
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.022, 8, 40), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.05 }));
       rim.rotation.x = Math.PI / 2; rim.position.y = 0.45; scene.add(rim);
-      const iceM = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.75, roughness: 0.1 });
-      for (const [x, z, r] of [[-0.08, 0.02, 0.4], [0.1, -0.06, 1.1]]) {
-        const ice = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.15, 0.17), iceM);
-        ice.position.set(x, 0.2, z); ice.rotation.set(r, r * 0.7, 0.3); scene.add(ice);
-      }
-    }, [0, 0.75, 2.1], [0, 0.02, 0], 32);
+      // 氷（水面から頭を出して浮き沈み）
+      const iceM = new THREE.MeshPhysicalMaterial
+        ? new THREE.MeshPhysicalMaterial({ color: 0xffffff, roughness: 0.2, clearcoat: 1, emissive: 0x9fc8dc })
+        : new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0x9fc8dc });
+      const edgeM = new THREE.LineBasicMaterial({ color: 0x3f8fbf });
+      [[-0.09, 0.05, 0.5, 0], [0.1, -0.06, 1.1, 1.7], [0.0, 0.12, 2.0, 3.1]].forEach(([x, z, r, o]) => {
+        const geo = new THREE.BoxGeometry(0.2, 0.17, 0.2);
+        const ice = new THREE.Mesh(geo, iceM);
+        ice.position.set(x + Math.sin(ph + o) * 0.015, lvl + 0.06 + Math.sin(ph + o) * 0.025, z);
+        ice.rotation.set(r + Math.sin(ph + o) * 0.15, r * 0.7, 0.3 + Math.cos(ph + o) * 0.1);
+        ice.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgeM));
+        scene.add(ice);
+      });
+    }, [0, 0.8, 2.1], [0, 0.02, 0], 32);
+    const glassFrames = [];
+    for (let k = 0; k < 8; k++) glassFrames.push(glassFrame((k / 8) * Math.PI * 2));
+    const glass = glassFrames[0];
 
-    return { binChashu, binNegi, flyChashu, flyNegi, glass };
+    return { binChashu, binNegi, flyChashu, flyNegi, glass, glassFrames };
   }
 
   // ---------- 公開API ----------

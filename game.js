@@ -764,6 +764,16 @@ function buildUI() {
   waterEl.title = 'お冷';
   const glassImg = Bowl3D.images && Bowl3D.images.glass;
   waterEl.innerHTML = `<div class="tray">${(glassImg ? `<img class="c3d" src="${glassImg}" alt="">` : '<div class="c"></div>').repeat(SEAT_COUNT)}</div>`;
+  // コップの水を動かす（コマを順に切りかえる。コップごとに少しずらす）
+  const frames = Bowl3D.images && Bowl3D.images.glassFrames;
+  if (frames) {
+    const imgs = [...waterEl.querySelectorAll('.c3d')];
+    let f = 0;
+    setInterval(() => {
+      f++;
+      imgs.forEach((im, k) => { im.src = frames[(f + k * 3) % frames.length]; });
+    }, 140);
+  }
   waterEl.addEventListener('pointerdown', pickWater);
 }
 
