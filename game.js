@@ -669,7 +669,7 @@ function buildUI() {
   // コップはカウンターの左側
   waterEl = $('cups');
   waterEl.title = 'お冷';
-  waterEl.innerHTML = '<div class="tray"><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div><div class="c"></div></div>';
+  waterEl.innerHTML = `<div class="tray">${'<div class="c"></div>'.repeat(SEAT_COUNT)}</div>`;
   waterEl.addEventListener('pointerdown', pickWater);
 }
 

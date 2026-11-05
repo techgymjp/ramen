@@ -654,7 +654,6 @@ kbd { font-family: inherit; }
     linear-gradient(#0000 0 28%, #bfe6f7d8 28%);
   box-shadow: 0 2px 2px #0003;
 }
-#cups .tray .c:last-child { grid-column: 1 / 3; }
 /* 席番号の札（カウンターのふち） */
 .seat-no {
   position: absolute; bottom: -30px; left: 50%; transform: translateX(-50%);

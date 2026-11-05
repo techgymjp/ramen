@@ -201,29 +201,76 @@ const Bowl3D = (() => {
     ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.03, reflectivity: 0.6 })
     : new THREE.MeshStandardMaterial({ map: soupTex, roughness: 0.15 });
 
-  // 麺：ゆるく波打った太めの麺を山盛りに
-  const noodleMat = new THREE.MeshStandardMaterial({ color: 0xe0ad3c, roughness: 0.35 });
+  // 麺：細めの縮れ麺を、麺線をそろえて山にたたむ。端はスープに沈む。照りと色むらで生っぽさを出す
+  const noodleMat = new THREE.MeshPhysicalMaterial
+    ? new THREE.MeshPhysicalMaterial({ vertexColors: true, roughness: 0.32, clearcoat: 0.7, clearcoatRoughness: 0.25, sheen: 0 })
+    : new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.32 });
+
+  // いくつかの TubeGeometry を1つにまとめる（頂点色つき）
+  function mergeTubes(list) {
+    let nv = 0, ni = 0;
+    for (const t of list) { nv += t.geo.attributes.position.count; ni += t.geo.index.count; }
+    const pos = new Float32Array(nv * 3), nor = new Float32Array(nv * 3), col = new Float32Array(nv * 3);
+    const idx = new Uint32Array(ni);
+    let vo = 0, io = 0;
+    for (const t of list) {
+      const p = t.geo.attributes.position, n = t.geo.attributes.normal, ix = t.geo.index;
+      pos.set(p.array, vo * 3); nor.set(n.array, vo * 3);
+      for (let k = 0; k < p.count; k++) col.set(t.color, (vo + k) * 3);
+      for (let k = 0; k < ix.count; k++) idx[io + k] = ix.array[k] + vo;
+      vo += p.count; io += ix.count;
+      t.geo.dispose();
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('normal', new THREE.BufferAttribute(nor, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    return g;
+  }
+
   const noodleGeos = (() => {
     let seed = 11;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-    const geos = [];
-    for (let n = 0; n < 30; n++) {
+    const STRANDS = 72, CHUNKS = 12;
+    const MOUND_R = 0.66;
+    const height = (x, z) => {
+      const r = Math.hypot(x, z) / MOUND_R;
+      return r >= 1 ? -0.03 : 0.13 * (1 - r * r);
+    };
+    const chunks = Array.from({ length: CHUNKS }, () => []);
+    for (let n = 0; n < STRANDS; n++) {
+      // 麺線はだいたい左右方向にそろえて、少しずつ角度と位置をずらす
+      const ang = (rnd() - 0.5) * 0.7 + (n % 2 ? 0.15 : -0.15);
+      const dx = Math.cos(ang), dz = Math.sin(ang);
+      const off = (rnd() - 0.5) * 1.05;             // 麺線に直交する方向の位置
+      const len = 1.1 + rnd() * 0.35;
+      const phase = rnd() * Math.PI * 2;
+      const freq = 26 + rnd() * 10;                  // 縮れの細かさ
+      const amp = 0.012 + rnd() * 0.008;
+      const layer = rnd() * 0.035;
       const pts = [];
-      const a0 = rnd() * Math.PI * 2;
-      let x = Math.cos(a0) * rnd() * 0.5, z = Math.sin(a0) * rnd() * 0.5;
-      let dir = rnd() * Math.PI * 2;
-      const lift = 0.015 + rnd() * 0.06;
-      for (let i = 0; i < 14; i++) {
-        dir += (rnd() - 0.5) * 1.3;
-        x += Math.cos(dir) * 0.09; z += Math.sin(dir) * 0.09;
+      const STEPS = 60;
+      for (let i = 0; i <= STEPS; i++) {
+        const t = i / STEPS - 0.5;
+        const along = t * len;
+        const wig = Math.sin(along * freq + phase) * amp;
+        const x = dx * along - dz * (off + wig);
+        const z = dz * along + dx * (off + wig);
         const r = Math.hypot(x, z);
-        if (r > 0.66) { x *= 0.66 / r; z *= 0.66 / r; dir += Math.PI * 0.6; }
-        const dome = 0.08 * (1 - Math.min(1, Math.hypot(x, z) / 0.7));
-        pts.push(new THREE.Vector3(x, SOUP_Y + lift + dome + Math.sin(i * 1.7) * 0.012, z));
+        if (r > 0.9) continue;
+        const bob = Math.cos(along * freq * 0.5 + phase) * 0.008;
+        const y = SOUP_Y + height(x, z) + layer + bob - (r > MOUND_R ? (r - MOUND_R) * 0.6 : 0);
+        pts.push(new THREE.Vector3(x, y, z));
       }
-      geos.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 48, 0.026, 7, false));
+      if (pts.length < 6) continue;
+      const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), pts.length * 2, 0.017 + rnd() * 0.004, 6, false);
+      // 色むら（小麦色〜こがね色）
+      const c = new THREE.Color().setHSL(0.11 + rnd() * 0.025, 0.72 + rnd() * 0.15, 0.55 + rnd() * 0.1);
+      if (c.convertSRGBToLinear) c.convertSRGBToLinear();   // 頂点色はリニア空間なので変換
+      chunks[n % CHUNKS].push({ geo, color: [c.r, c.g, c.b] });
     }
-    return geos;
+    return chunks.filter((c) => c.length).map(mergeTubes);
   })();
 
   // チャーシュー：側面は茶色、上面に断面テクスチャ
