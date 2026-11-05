@@ -109,7 +109,9 @@ function noiseBurst(a, t, dur, vol, type, f0, f1) {
   src.connect(f); f.connect(g); g.connect(a.destination);
   src.start(t); src.stop(t + dur + 0.02);
 }
+let offlineCtx = null;   // 効果音を前もって録音するときの入れもの
 function getAudio() {
+  if (offlineCtx) return offlineCtx;
   try {
     if (!actx) {
       // 反応を速くするため、いちばん低遅延の設定で作る
@@ -1386,7 +1388,43 @@ document.addEventListener('keydown', (ev) => {
   }
 });
 
+// ---------- 効果音を前もって作っておく ----------
+// 音をその場で組み立てると、スマホでは鳴るまでに少し時間がかかるので、
+// ページを開いたときに効果音を録音しておき、タップした瞬間はそれを再生するだけにする
+const SFX_PRELOAD = ['chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
+async function preloadSfx() {
+  const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  if (!OAC) return;
+  const rate = 44100;
+  for (const name of SFX_PRELOAD) {
+    const live = sfx[name];
+    try {
+      const oc = new OAC(1, Math.round(rate * 1.6), rate);
+      offlineCtx = oc;
+      live();
+      offlineCtx = null;
+      const buf = await oc.startRendering();
+      // 末尾の無音を切って、再生用に差しかえる
+      const d = buf.getChannelData(0);
+      let end = d.length - 1;
+      while (end > 0 && Math.abs(d[end]) < 0.0005) end--;
+      const out = new AudioBuffer({ length: Math.max(1, end + 1), sampleRate: rate, numberOfChannels: 1 });
+      out.copyToChannel(d.subarray(0, end + 1), 0);
+      sfx[name] = () => {
+        const a = getAudio(); if (!a) return;
+        try {
+          const s = a.createBufferSource(); s.buffer = out;
+          s.connect(a.destination); s.start();
+        } catch (e) { live(); }
+      };
+    } catch (e) {
+      offlineCtx = null;   // 録音できない環境では、その場で作る音のまま
+    }
+  }
+}
+
 buildUI();
+preloadSfx();
 showTitle();
 updateBgmBtn();
 $('bgmBtn').addEventListener('click', toggleBgm);
