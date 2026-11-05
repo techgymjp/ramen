@@ -552,10 +552,10 @@ kbd { font-family: inherit; }
 }
 
 @media (max-width: 640px) {
-  #shop { height: 214px; }
-  #shop::before { height: 38%; }
-  #wall { height: 38%; }
-  #shop { --wall-h: 38%; }
+  #shop { height: 296px; }
+  #shop::before { height: 46%; }
+  #wall { height: 46%; }
+  #shop { --wall-h: 46%; }
   #hud { font-size: 12px; padding: 3px 4px; gap: 2px 8px; }
   .hud-btn { font-size: 10px; padding: 0 4px; }
   #hud { flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; }
@@ -570,7 +570,7 @@ kbd { font-family: inherit; }
   #menulist { left: 6px; top: 12px; gap: 5px; }
   #menulist { top: 8px !important; }
   .tanzaku { padding: 3px 2px; gap: 1px; }
-  .t-name { font-size: 10px; height: 62px; }
+  .t-name { font-size: 11px; height: 80px; }
   .t-price { font-size: 8px; }
   .harigami { right: 6px; top: 14px; width: 66px; font-size: 9px; padding: 4px 2px; }
   .harigami::first-line { font-size: 10px; }
