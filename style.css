@@ -804,3 +804,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 
 /* お客さんへ飛んでいくラーメン */
 .fly-bowl { transform-origin: 50% 50%; filter: drop-shadow(0 6px 6px rgba(0,0,0,.3)); }
+/* スマホ：1番席のコップ（お客さんの左側）が画面の端で切れないよう、席を少し右に寄せる */
+@media (max-width: 640px) {
+  #seats { left: 14px !important; right: 0 !important; }
+  .seat .glass { left: calc(50% - 32px) !important; }
+}
