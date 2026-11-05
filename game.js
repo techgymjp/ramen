@@ -3,7 +3,7 @@
 // ===================== 設定 =====================
 const DAY_LEN = 180;          // 営業時間（実時間・秒）
 const SEAT_COUNT = 5;
-const BOILER_COUNT = 3;
+const POT_CAP = 6;            // 麺茹で機のてぼ（麺かご）の数
 const BOIL_TIME = 6;          // 茹で上がりまでの秒数（ピピッと鳴る）
 const OVER_TIME = 6;          // ピピッから何秒で茹ですぎ（ゴミ）になるか
 const COST_NOODLE = 100;      // 茹ですぎの麺を捨てたときの損失
@@ -39,9 +39,10 @@ let lastTs = 0;
 let running = false;
 let nextId = 1;
 
-// どんぶりにはあらかじめスープが入っている
+// どんぶり：お客さん1人につき1つ、空の状態で厨房正面に出てくる
+// fly = 飛んでいる途中の具（着地するまで描かない）
 function newBowl() {
-  return { men: false, tops: { chashu: 0, negi: 0 } };
+  return { soup: false, men: false, tops: { chashu: 0, negi: 0 }, fly: { chashu: 0, negi: 0 } };
 }
 
 function newGame() {
@@ -57,8 +58,9 @@ function newGame() {
     waste: 0,
     queue: [],
     seats: Array(SEAT_COUNT).fill(null),
-    boilers: Array.from({ length: BOILER_COUNT }, () => ({ on: false, t: 0, beeped: false })),
-    bowl: newBowl(),
+    pot: Array(POT_CAP).fill(null),   // 茹で鍋の中のてぼ: null | { t: 茹で経過秒, beeped }
+    bowls: Array(SEAT_COUNT).fill(null),  // 席ごとのどんぶり（お客さんがいる席だけ）
+    active: -1,                            // 選択中のどんぶり（席番号）
     water: false,      // お冷を持っているか
     spawnT: 1.5,
     sales: {},
@@ -158,55 +160,171 @@ function pickWater() {
   sfx.water();
 }
 
-// 麺を入れる／麺を出す
-function clickBoiler(i) {
-  const bo = S.boilers[i];
-  if (!bo.on) {
-    bo.on = true; bo.t = 0; bo.beeped = false;
-    beep(440, 0.06);
+// どんぶりをタップ：選択する。空ならスープを入れる
+function tapBowl(i) {
+  const b = S.bowls[i];
+  if (!b) return;
+  S.active = i;
+  if (!b.soup) {
+    b.soup = true;
+    beep(330, 0.12, 'sine', 0.07);
+  } else {
+    sfx.tap();
+  }
+}
+
+function activeBowl() {
+  return S.active >= 0 ? S.bowls[S.active] : null;
+}
+
+// 選択中のどんぶりがなくなったら、別のどんぶりを選ぶ
+function fixActive() {
+  if (activeBowl()) return;
+  S.active = S.bowls.findIndex((b) => b);
+}
+
+// 麺を入れる（場所の指定がなければ空いているてぼへ）
+function addNoodle(at) {
+  const i = at !== undefined ? at : S.pot.indexOf(null);
+  if (i < 0) { toast('てぼが全部ふさがっています'); return; }
+  S.pot[i] = { t: 0, beeped: false };
+  beep(440, 0.06);
+}
+
+// てぼをタップ：茹で上がっていたら湯切りしてどんぶりへ
+function takeNoodle(i) {
+  const n = S.pot[i];
+  if (!n) { addNoodle(i); return; }
+  if (n.t < BOIL_TIME) { toast('まだ茹でています… ピピッと鳴るまで待とう'); return; }
+  // 入れ先：選択中のどんぶり → だめなら、スープが入っていて麺がまだのどんぶり
+  const ok = (b) => b && b.soup && !b.men;
+  const target = ok(activeBowl()) ? S.active : S.bowls.findIndex(ok);
+  if (target < 0) {
+    const a = activeBowl();
+    if (a && !a.soup) toast('スープが入っていないと麺を入れられません。どんぶりをタップしてスープを入れよう');
+    else toast('スープの入った空のどんぶりがありません');
     return;
   }
-  if (bo.t < BOIL_TIME) { toast('まだ茹でています… ピピッと鳴るまで待とう'); return; }
-  if (S.bowl.men) { toast('どんぶりにはもう麺が入っています。先にお客さんに出そう'); return; }
-  // 湯切りしてどんぶりへ
-  bo.on = false; bo.t = 0; bo.beeped = false;
-  S.bowl.men = true;
+  S.pot[i] = null;
+  const b = S.bowls[target];
+  b.men = true;
+  b.menFly = true;   // てぼが運ばれてくるまで麺は描かない
+  S.active = target;
   sfx.drain();
-  const el = boilerEls[i].el;
+  const el = teboEls[i].el;
   el.classList.remove('drain');
   void el.offsetWidth; // アニメーションを再生し直す
   el.classList.add('drain');
+  flyTebo(el, target, b);
 }
 
-// トッピング
+// てぼを持ち上げて、チャッチャッと湯切りして、どんぶりにあける
+function flyTebo(slotEl, target, b) {
+  const from = slotEl.querySelector('.hole').getBoundingClientRect();
+  const to = bowlEls[target].bowl.getBoundingClientRect();
+  const size = from.width;
+  const sx = from.left, sy = from.top;
+  const ex = to.left + to.width / 2 - size / 2, ey = to.top + to.height / 2 - size / 2;
+  const up = sy - 40;
+  const el = document.createElement('div');
+  el.className = 'fly fly-tebo';
+  el.style.setProperty('--hs', size + 'px');
+  el.innerHTML = '<div class="tebo"><div class="noodle"></div><div class="handle"></div></div>';
+  document.body.appendChild(el);
+  const done = () => { el.remove(); b.menFly = false; };
+  if (!el.animate) { done(); return; }
+  const at = (x, y, sc = 1.1, r = 0) => ({ transform: `translate(${x}px, ${y}px) scale(${sc}) rotate(${r}deg)` });
+  const anim = el.animate([
+    at(sx, sy, 1),
+    { ...at(sx, up), offset: 0.2 },
+    { ...at(sx, up + 18), offset: 0.3 },   // チャッ
+    { ...at(sx, up), offset: 0.4 },
+    { ...at(sx, up + 18), offset: 0.5 },   // チャッ
+    { ...at((sx + ex) / 2, Math.min(up, ey) - 30), offset: 0.75 },
+    { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.92 },
+    { ...at(ex, ey, 0.9, -60), opacity: 0 },
+  ], { duration: 1000, easing: 'ease-in-out' });
+  setTimeout(() => sfx.drain(), 300);
+  anim.onfinish = done;
+  anim.oncancel = done;
+}
+
+// キー操作用：いちばん茹で時間の長い茹で上がりの麺を出す
+function takeReadyNoodle() {
+  let best = -1;
+  S.pot.forEach((n, i) => { if (n && n.t >= BOIL_TIME && (best < 0 || n.t > S.pot[best].t)) best = i; });
+  if (best < 0) { toast('茹で上がった麺がありません'); return; }
+  takeNoodle(best);
+}
+
+// トッピング：什器から具が飛び出して、選択中のどんぶりへ飛んでいく
 function addTopping(key) {
-  const b = S.bowl;
+  const b = activeBowl();
+  if (!b) { toast('どんぶりがありません'); return; }
   if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
   b.tops[key]++;
   sfx.tap();
-  if (b.tops[key] > TOP_MAX[key]) {
-    S.bowl = newBowl();
+  const over = b.tops[key] > TOP_MAX[key];
+  flyTopping(key, b, S.active, !over);
+  if (over) {
+    S.bowls[S.active] = newBowl();
     const name = TOPPINGS.find((t) => t.key === key).name;
     throwAway(`${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
   }
 }
 
-// 客に出す（お冷を持っていれば水を出す）
+function flyTopping(key, b, slot, land) {
+  const bin = binEls[key];
+  bin.classList.remove('pop');
+  void bin.offsetWidth;
+  bin.classList.add('pop');
+
+  const index = b.tops[key] - 1;
+  const from = bin.querySelector('svg').getBoundingClientRect();
+  const bowl = bowlEls[slot].bowl.getBoundingClientRect();
+  const [px, py] = TOP_POS[key][index % TOP_POS[key].length];
+  const sx = from.left + from.width / 2, sy = from.top + from.height * 0.45;
+  const ex = bowl.left + bowl.width * px / 100, ey = bowl.top + bowl.height * py / 100;
+  const lift = Math.min(sy, ey) - 70;   // 放物線の頂点
+  const sc = bowl.width / 96;           // どんぶりの表示サイズに合わせる
+
+  const el = document.createElement('div');
+  el.className = 'fly';
+  el.innerHTML = `<div class="top ${key}"></div>`;
+  document.body.appendChild(el);
+  if (land) b.fly[key]++;
+
+  const finish = () => {
+    el.remove();
+    if (land) b.fly[key] = Math.max(0, b.fly[key] - 1);
+  };
+  if (!el.animate) { finish(); return; }
+  const spin = key === 'chashu' ? 540 : 360;
+  const anim = el.animate([
+    { transform: `translate(${sx}px, ${sy}px) scale(1.5) rotate(0deg)` },
+    { transform: `translate(${(sx + ex) / 2}px, ${lift}px) scale(1.7) rotate(${spin / 2}deg)`, offset: 0.45 },
+    { transform: `translate(${ex}px, ${ey}px) scale(${sc}) rotate(${spin}deg)` },
+  ], { duration: 480, easing: 'ease-in' });
+  anim.onfinish = finish;
+  anim.oncancel = finish;
+}
+
+// 客に出す（お冷を持っていれば水を出す）。出すのはそのお客さんの前のどんぶり
 function tapCustomer(seatIdx) {
   const c = S.seats[seatIdx];
   if (!c) return;
   // コップを持っていて、まだ水がないお客さんなら水を出す
   if (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving') { giveWater(c); return; }
   if (c.state !== 'waiting') return;
-  const b = S.bowl;
-  if (!b.men) { toast('まだラーメンができていません'); return; }
+  const b = S.bowls[seatIdx];
+  if (!b || !b.men) { toast('このお客さんのラーメンはまだできていません'); return; }
 
   const menu = MENU[c.order];
   const match = Object.keys(menu.rec).every((k) => b.tops[k] === menu.rec[k]);
-  S.bowl = newBowl();
 
   if (!match) {
-    // 注文とちがう → 突き返されてゴミ。お客さんはイライラしながら待ち続ける
+    // 注文とちがう → 突き返されてゴミ。新しい空のどんぶりが出てくる
+    S.bowls[seatIdx] = newBowl();
     throwAway('注文とちがう！ラーメンはゴミに', COST_BOWL);
     c.pat = Math.min(c.patMax * 0.95, c.pat + c.patMax * 0.2);
     S.rep -= 0.2;
@@ -215,6 +333,8 @@ function tapCustomer(seatIdx) {
     return;
   }
 
+  S.bowls[seatIdx] = null;   // どんぶりはお客さんのところへ
+  fixActive();
   if (c.water) startEating(seatIdx, c);
   else {
     c.state = 'hot';
@@ -291,7 +411,11 @@ function update(dt) {
 
   // 席に案内
   for (let i = 0; i < SEAT_COUNT; i++) {
-    if (!S.seats[i] && S.queue.length) S.seats[i] = S.queue.shift();
+    if (!S.seats[i] && S.queue.length) {
+      S.seats[i] = S.queue.shift();
+      S.bowls[i] = newBowl();   // お客さんの数だけ空のどんぶりが出てくる
+      fixActive();
+    }
   }
 
   // 席の客
@@ -303,6 +427,10 @@ function update(dt) {
       c.pat += dt;
       if (c.pat >= c.patMax) {
         if (c.state === 'hot') throwAway('食べずに帰ってしまった…ラーメンはゴミに', 0);
+        const b = S.bowls[i];
+        if (b && b.men) throwAway('お客さんが帰ってしまった…ラーメンはゴミに', COST_BOWL);
+        S.bowls[i] = null;
+        fixActive();
         c.state = 'leaving'; c.timer = 2;
         c.react = 'もう帰る！💢'; c.reactCls = 'bad';
         S.rep -= 0.3; S.angry++;
@@ -314,13 +442,14 @@ function update(dt) {
     }
   }
 
-  // 茹で釜（茹で上がったらピピッ、放っておくと茹ですぎでゴミ）
-  for (const bo of S.boilers) {
-    if (!bo.on) continue;
-    bo.t += dt;
-    if (!bo.beeped && bo.t >= BOIL_TIME) { bo.beeped = true; sfx.pipi(); }
-    if (bo.t >= BOIL_TIME + OVER_TIME) {
-      bo.on = false; bo.t = 0; bo.beeped = false;
+  // 茹で鍋（茹で上がったらピピッ、放っておくと茹ですぎでゴミ）
+  for (let i = 0; i < POT_CAP; i++) {
+    const n = S.pot[i];
+    if (!n) continue;
+    n.t += dt;
+    if (!n.beeped && n.t >= BOIL_TIME) { n.beeped = true; sfx.pipi(); }
+    if (n.t >= BOIL_TIME + OVER_TIME) {
+      S.pot[i] = null;
       throwAway('茹ですぎ！麺はゴミに', COST_NOODLE);
     }
   }
@@ -332,9 +461,53 @@ function update(dt) {
 
 // ===================== 描画 =====================
 const seatEls = [];
-const boilerEls = [];
-let bowlEls = null;
+const teboEls = [];
+const bowlEls = [];
 let waterEl = null;
+const binEls = {};
+
+// 具材の什器（ステンレスのバット）のイラスト
+function binSVG(key) {
+  let seed = key === 'chashu' ? 7 : 13;
+  const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  let fill = '';
+  if (key === 'chashu') {
+    // 巻きチャーシューのスライスを並べる
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 5; col++) {
+        const x = 28 + col * 21 + (row % 2) * 9 + rnd() * 3;
+        const y = 30 + row * 20 + rnd() * 3;
+        const r = Math.round(rnd() * 60 - 30);
+        fill += `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)}) rotate(${r})">
+          <ellipse rx="14" ry="12" fill="#7a3a1e"/>
+          <ellipse rx="11.5" ry="9.8" fill="#d68e6e"/>
+          <ellipse rx="7" ry="6" fill="#f3c7b0"/>
+          <path d="M-4 0 a4 3.5 0 1 1 4 3.5 a2 2 0 1 1 1 -3" fill="none" stroke="#c07455" stroke-width="1.3"/>
+          <ellipse cx="-3" cy="-5" rx="4" ry="1.6" fill="#fff" opacity=".35"/>
+        </g>`;
+      }
+    }
+  } else {
+    // 小口切りのネギを山盛りに
+    fill += '<rect x="12" y="12" width="116" height="76" rx="6" fill="#cfe8b8"/>';
+    for (let i = 0; i < 95; i++) {
+      const x = 18 + rnd() * 104, y = 17 + rnd() * 66;
+      const c = rnd() < 0.5 ? '#2f8f2f' : rnd() < 0.5 ? '#5fb043' : '#9ccc65';
+      fill += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(2.6 + rnd() * 1.4).toFixed(1)}" fill="#f6fbe9" stroke="${c}" stroke-width="1.9"/>`;
+    }
+  }
+  return `<svg viewBox="0 0 140 100" aria-hidden="true">
+    <defs>
+      <linearGradient id="steel-${key}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#f4f6f8"/><stop offset=".5" stop-color="#b8c0c7"/><stop offset="1" stop-color="#7f8a94"/>
+      </linearGradient>
+    </defs>
+    <rect x="2" y="2" width="136" height="96" rx="10" fill="url(#steel-${key})" stroke="#5d666e" stroke-width="2"/>
+    <rect x="10" y="10" width="120" height="80" rx="6" fill="#6f7a83"/>
+    ${fill}
+    <path d="M14 12 h112" stroke="#fff" stroke-width="2" opacity=".5"/>
+  </svg>`;
+}
 
 function recipeText(rec) {
   return TOPPINGS.map((t) => `${t.name}×${rec[t.key]}`).join('・');
@@ -357,48 +530,59 @@ function buildUI() {
     seatEls.push({ root, top: root.children[0], cust: root.children[1], key: '' });
   }
 
-  // 茹で釜
-  const bw = $('boilers');
-  const keys = 'QWE';
-  for (let i = 0; i < BOILER_COUNT; i++) {
+  // 麺茹で機（ステンレスの箱に、てぼ6つ）
+  const pot = document.createElement('div');
+  pot.className = 'pot';
+  pot.innerHTML = `<div class="pot-ctrl"><div class="ctrl-panel"><div class="dial"></div><div class="lamp"></div></div></div>
+    <div class="tebos"></div>
+    <div class="pot-hint">穴をタップで麺を入れる [Q]<br>ピピッ！のてぼをタップで出す [W]</div>`;
+  pot.addEventListener('pointerdown', () => addNoodle());
+  $('boilers').appendChild(pot);
+  const tebos = pot.querySelector('.tebos');
+  for (let i = 0; i < POT_CAP; i++) {
     const el = document.createElement('div');
-    el.className = 'boiler';
-    el.innerHTML = `<div class="gauge"><div class="fill"></div></div>
-      <div class="steam">♨</div>
+    el.className = 'tebo-slot';
+    el.innerHTML = `<div class="hole"></div>
+      <div class="tebo"><div class="noodle"></div><div class="handle"></div></div>
+      <div class="gauge"><div class="fill"></div></div>
       <div class="pipi">ピピッ！</div>
-      <div class="tebo"><div class="noodle"></div></div>
-      <div class="chacha">チャッチャッ！</div>
-      <div class="hint"></div>
-      <div class="bkey">[${keys[i]}]</div>`;
-    el.addEventListener('pointerdown', () => clickBoiler(i));
-    bw.appendChild(el);
-    boilerEls.push({ el, fill: el.querySelector('.fill'), hint: el.querySelector('.hint') });
+      <div class="chacha">チャッチャッ！</div>`;
+    el.addEventListener('pointerdown', (ev) => {
+      ev.stopPropagation();
+      takeNoodle(i);
+    });
+    tebos.appendChild(el);
+    teboEls.push({ el, fill: el.querySelector('.fill') });
   }
 
-  // どんぶり
+  // どんぶり（席ごと、厨房正面に並ぶ）
   const area = $('bowlArea');
-  area.innerHTML = `<div class="bowl has-soup"><div class="soup"></div><div class="men"></div><div class="tops"></div></div>
-    <div class="bowl-info"></div>`;
-  bowlEls = { bowl: area.querySelector('.bowl'), tops: area.querySelector('.tops'), info: area.querySelector('.bowl-info'), key: '' };
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const slot = document.createElement('div');
+    slot.className = 'bowl-slot';
+    slot.innerHTML = `<div class="bowl-who"></div>
+      <div class="bowl-wrap"><div class="bowl"><div class="soup"></div><div class="men"></div><div class="tops"></div></div></div>
+      <div class="bowl-info"></div>`;
+    slot.addEventListener('pointerdown', () => tapBowl(i));
+    area.appendChild(slot);
+    bowlEls.push({ slot, who: slot.querySelector('.bowl-who'), bowl: slot.querySelector('.bowl'),
+      tops: slot.querySelector('.tops'), info: slot.querySelector('.bowl-info'), key: '' });
+  }
 
-  // お冷・トッピング
+  // 具材の什器（厨房の右側）
   const ing = $('ingredients');
-  const mk = (html, fn) => {
+  for (const t of TOPPINGS) {
     const el = document.createElement('div');
-    el.className = 'ing';
-    el.innerHTML = html;
-    el.addEventListener('pointerdown', fn);
+    el.className = 'bin';
+    el.innerHTML = `${binSVG(t.key)}<div class="bin-name">${t.name}<span class="key">[${t.hotkey}]</span></div>`;
+    el.addEventListener('pointerdown', () => addTopping(t.key));
     ing.appendChild(el);
-    return el;
-  };
+    binEls[t.key] = el;
+  }
   // コップはカウンターの左側
   waterEl = $('cups');
   waterEl.innerHTML = '<div class="cup-stack">🥛🥛<br>🥛🥛🥛</div><div class="cup-label">水を出す<span class="key">[G]</span></div>';
   waterEl.addEventListener('pointerdown', pickWater);
-  for (const t of TOPPINGS) {
-    mk(`<div class="icon"><div class="top ${t.key}"></div></div>${t.name}<span class="key">[${t.hotkey}]</span>`,
-      () => addTopping(t.key));
-  }
 }
 
 function render() {
@@ -425,7 +609,6 @@ function render() {
   }
 
   // 席
-  const bowlReady = S.bowl.men;
   for (let i = 0; i < SEAT_COUNT; i++) {
     const c = S.seats[i];
     const e = seatEls[i];
@@ -461,49 +644,54 @@ function render() {
       bar.style.background = r > 0.5 ? '#4c4' : r > 0.25 ? '#eb3' : '#e33';
     }
     const target = (S.water && !c.water && c.state !== 'eating' && c.state !== 'leaving')
-      || (bowlReady && c.state === 'waiting');
+      || (!!S.bowls[i] && S.bowls[i].men && c.state === 'waiting');
     e.root.classList.toggle('target', target);
   }
 
-  // 茹で釜
-  for (let i = 0; i < BOILER_COUNT; i++) {
-    const bo = S.boilers[i];
-    const e = boilerEls[i];
-    const ready = bo.on && bo.t >= BOIL_TIME;
-    e.el.classList.toggle('on', bo.on);
+  // 茹で鍋
+  for (let i = 0; i < POT_CAP; i++) {
+    const n = S.pot[i];
+    const e = teboEls[i];
+    const ready = !!n && n.t >= BOIL_TIME;
+    e.el.classList.toggle('on', !!n);
     e.el.classList.toggle('ready', ready);
-    if (bo.on) {
-      if (!ready) {
-        e.fill.style.width = (bo.t / BOIL_TIME * 100) + '%';
-        e.fill.style.background = '#6c6';
-        e.hint.textContent = `茹で中… ${Math.ceil(BOIL_TIME - bo.t)}秒`;
-      } else {
-        // 茹で上がり後は「茹ですぎまでの残り」を減らしていく
-        const rest = Math.max(0, 1 - (bo.t - BOIL_TIME) / OVER_TIME);
-        e.fill.style.width = (rest * 100) + '%';
-        e.fill.style.background = rest > 0.4 ? '#fb3' : '#e33';
-        e.hint.textContent = rest > 0.4 ? 'タップで麺を出す！' : '茹ですぎ注意！';
-      }
+    if (!n) continue;
+    if (!ready) {
+      e.fill.style.width = (n.t / BOIL_TIME * 100) + '%';
+      e.fill.style.background = '#6c6';
     } else {
-      e.hint.textContent = 'タップで麺を入れる';
+      // 茹で上がり後は「茹ですぎまでの残り」を減らしていく
+      const rest = Math.max(0, 1 - (n.t - BOIL_TIME) / OVER_TIME);
+      e.fill.style.width = (rest * 100) + '%';
+      e.fill.style.background = rest > 0.4 ? '#fb3' : '#e33';
     }
   }
 
   // どんぶり
-  const b = S.bowl;
-  const key = JSON.stringify(b);
-  if (bowlEls.key !== key) {
-    bowlEls.key = key;
-    bowlEls.bowl.classList.toggle('has-men', b.men);
+  for (let i = 0; i < SEAT_COUNT; i++) {
+    const b = S.bowls[i];
+    const e = bowlEls[i];
+    const c = S.seats[i];
+    const key = JSON.stringify(b) + (i === S.active) + (c ? c.id : '');
+    if (e.key === key) continue;
+    e.key = key;
+    e.slot.classList.toggle('empty', !b);
+    e.slot.classList.toggle('active', !!b && i === S.active);
+    if (!b) { e.who.textContent = ''; e.info.textContent = ''; e.tops.innerHTML = ''; continue; }
+    e.who.textContent = c ? `${c.face} ${MENU[c.order].name}` : '';
+    e.bowl.classList.toggle('has-soup', b.soup);
+    e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
     for (const t of TOPPINGS) {
-      for (let n = 0; n < b.tops[t.key]; n++) {
+      for (let n = 0; n < b.tops[t.key] - b.fly[t.key]; n++) {
         const [x, y] = TOP_POS[t.key][n % TOP_POS[t.key].length];
         html += `<div class="top ${t.key}" style="left:${x}%;top:${y}%"></div>`;
       }
     }
-    bowlEls.tops.innerHTML = html;
-    bowlEls.info.innerHTML = b.men ? `麺入り<br>${recipeText(b.tops)}` : 'スープのみ<br>（麺を待っています）';
+    e.tops.innerHTML = html;
+    e.info.innerHTML = !b.soup ? 'タップでスープ'
+      : !b.men || b.menFly ? 'スープ入り<br>麺を待っています'
+      : TOPPINGS.map((t) => `${t.name}${b.tops[t.key]}`).join(' ');
   }
 }
 
@@ -519,8 +707,7 @@ function loop(ts) {
 
 function startGame() {
   newGame();
-  for (const e of seatEls) e.key = 'x';
-  bowlEls.key = 'x';
+  for (const e of [...seatEls, ...bowlEls]) e.key = 'x';
   $('queue').dataset.key = 'x';
   $('overlay').classList.add('hidden');
   running = true;
@@ -575,10 +762,11 @@ function showTitle() {
     <h2>タップするもの</h2>
     <ul>
       <li>🥛 カウンター左の<b>コップ</b> → お客さんをタップで水を出す。いつでも出せます（ラーメンは熱いので、<b>水がないと食べてくれません</b>）</li>
-      <li>🍜 <b>茹で釜</b>をタップで<b>麺を入れる</b></li>
-      <li>🔔 <b>ピピッ</b>と鳴ったら茹で釜をタップで<b>麺を出す</b>（湯切りしてどんぶりへ）</li>
-      <li>🥩 <b>トッピング</b>（チャーシュー・ネギ）を注文の数だけのせる</li>
-      <li>🙋 注文した<b>お客さんをタップ</b>して出す！</li>
+      <li>🍜 <b>麺茹で機</b>の空いている穴をタップで<b>麺を入れる</b>（6玉まで同時に茹でられます）</li>
+      <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
+      <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
+      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 選んでいるどんぶりへ飛んでいく</li>
+      <li>🙋 <b>お客さんをタップ</b>すると、その人の前のどんぶりを出します</li>
     </ul>
     <h2>メニュー</h2>
     <table>${menuRows}</table>
@@ -587,7 +775,7 @@ function showTitle() {
       <li>ピピッの後に放っておいた<b>茹ですぎの麺</b></li>
       <li>トッピングをのせすぎたラーメン、<b>注文とちがうラーメン</b></li>
     </ul>
-    <p style="font-size:12px;color:#666">キー操作：G 水 / Q W E 茹で釜 / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
+    <p style="font-size:12px;color:#666">キー操作：G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
     <button class="btn" id="startBtn">開店！</button>`;
   $('startBtn').addEventListener('click', startGame);
 }
@@ -599,7 +787,8 @@ document.addEventListener('keydown', (ev) => {
   if (k.length !== 1) return;
   if ('6789'.includes(k)) tapCustomer(Number(k) - 6);
   else if (k === '0') tapCustomer(4);
-  else if ('qwe'.includes(k)) clickBoiler('qwe'.indexOf(k));
+  else if (k === 'q') addNoodle();
+  else if (k === 'w') takeReadyNoodle();
   else if (k === 'g') pickWater();
   else {
     const t = TOPPINGS.find((tp) => tp.hotkey.toLowerCase() === k);
