@@ -376,7 +376,7 @@ function takeReadyNoodle() {
 // ワンタップで、そのどんぶりのお客さんの注文どおりの量がのる。
 // 1タップで1人前（チャーシューなら数枚、ネギならひとつかみ）がのる。
 // 同じ具を2回のせると「のせすぎ」でゴミになる
-const PIECES = { chashu: 8, negi: 6 };   // 1人前で飛んでいく個数（見た目）
+const PIECES = { chashu: 4, negi: 6 };   // 1人前で飛んでいく個数（見た目）
 
 function addTopping(key) {
   const b = activeBowl();
