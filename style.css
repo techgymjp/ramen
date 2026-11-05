@@ -551,16 +551,25 @@ kbd { font-family: inherit; }
 }
 
 @media (max-width: 640px) {
-  #shop { height: 300px; }
-  #shop::before { height: 46%; }
-  #shop { background-position: 0 46%, 0 0, 0 0, 0 0; }
+  #shop { height: 236px; }
+  #shop::before { height: 38%; }
+  #wall { height: 38%; }
+  #shop { background-position: 0 38%, 0 0, 0 0, 0 0; }
+  #hud { font-size: 12px; padding: 3px 4px; gap: 2px 8px; }
+  .hud-btn { font-size: 10px; padding: 0 4px; }
+  #hud { flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; }
+  .hud-btn .lbl { display: none; }
+  .bin .bin-img { width: 82%; margin: 0 auto; }
+  .three .bowl-wrap { margin-top: -12px !important; }
+  #bowlArea .bowl-slot:nth-child(n+4) { margin-top: -6px; }
   #entrance { width: 70px; }
   .noren span { font-size: 13px; }
   #wall { left: 0; }
   .wall-clock, .himekuri { display: none; }
   #menulist { left: 6px; top: 12px; gap: 5px; }
-  .tanzaku { padding: 4px 2px; gap: 2px; }
-  .t-name { font-size: 11px; height: 80px; }
+  #menulist { top: 8px !important; }
+  .tanzaku { padding: 3px 2px; gap: 1px; }
+  .t-name { font-size: 10px; height: 62px; }
   .t-price { font-size: 8px; }
   .harigami { right: 6px; top: 14px; width: 66px; font-size: 9px; padding: 4px 2px; }
   .harigami::first-line { font-size: 10px; }
@@ -571,14 +580,23 @@ kbd { font-family: inherit; }
   .react { font-size: 10px; }
   .seat:last-child .react { transform: translateX(-30%); }
   #bowlArea { --bs: 1.05; gap: 2px 0; }
-  .slip { padding: 4px 3px 3px; width: 96%; height: 66px; }
+  .slip { padding: 2px 3px 2px; width: 96%; height: 46px; }
+  .slip .no { font-size: 10px; line-height: 1.1; }
+  .slip .nm { font-size: 13px; line-height: 1.15; }
+  #bowlArea .bowl-slot { padding-top: 10px; padding-bottom: 0; }
+  .three .bowl-wrap { aspect-ratio: 1 / 0.56; margin-top: -4px; }
+  #kitchen { gap: 4px !important; padding: 4px !important; }
+  .side-block #ingredients { gap: 0; }
+  #bowlArea { gap: 0; }
+  .bowl-block { padding-top: 2px; padding-bottom: 2px; }
   .slip .no { font-size: 11px; }
   .slip .nm { font-size: 14px; letter-spacing: -0.5px; }
-  #boilers { --hs: 46px; }
-  .pot { min-height: 0; padding: 48px 6px 8px; }
-  .pot-ctrl { height: 38px; top: 6px; }
-  .ctrl-panel { height: 26px; }
-  .dial { width: 18px; height: 18px; }
+  #boilers { --hs: 40px; }
+  .tebos { gap: 0 !important; }
+  .pot { min-height: 0; padding: 36px 6px 6px; }
+  .pot-ctrl { height: 28px; top: 4px; }
+  .ctrl-panel { height: 20px; }
+  .dial { width: 14px; height: 14px; }
   .tebos { grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(2, 1fr); gap: 2px; }
   #kitchen { grid-template-columns: 1fr 120px; grid-template-areas: "pot bins" "bowls bowls"; padding: 6px; gap: 6px; }
 }

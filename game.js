@@ -105,7 +105,7 @@ let bgmOn = true;
 try { bgmOn = localStorage.getItem('ramen-bgm') !== 'off'; } catch (e) { /* 保存できなくても続行 */ }
 function updateBgmBtn() {
   const b = $('bgmBtn');
-  b.textContent = bgmOn ? '🎵 BGM ON' : '🔇 BGM OFF';
+  b.innerHTML = bgmOn ? '🎵<span class="lbl"> BGM ON</span>' : '🔇<span class="lbl"> BGM OFF</span>';
   b.classList.toggle('off', !bgmOn);
 }
 function toggleBgm() {
