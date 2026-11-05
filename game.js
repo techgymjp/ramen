@@ -91,6 +91,7 @@ function toast(msg) {
 
 // ---------- 効果音 ----------
 let actx = null;
+let sfxNoise = null;
 function getAudio() {
   try {
     if (!actx) actx = new (window.AudioContext || window.webkitAudioContext)();
@@ -129,6 +130,35 @@ const sfx = {
   tap:   () => beep(660, 0.05),
   pipi:  () => { beep(2000, 0.07); setTimeout(() => beep(2000, 0.07), 120); },
   drain: () => { beep(240, 0.06, 'triangle', 0.08); setTimeout(() => beep(260, 0.06, 'triangle', 0.08), 110); },
+  // 湯切りの「パッパ」：お湯をはじく短い水しぶきの音を2回
+  pappa: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      if (!sfxNoise) {
+        sfxNoise = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate);
+        const d = sfxNoise.getChannelData(0);
+        for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+      }
+      const splash = (t, vol) => {
+        const src = a.createBufferSource(); src.buffer = sfxNoise;
+        const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 1.2;
+        bp.frequency.setValueAtTime(2600, t); bp.frequency.exponentialRampToValueAtTime(700, t + 0.09);
+        const gn = a.createGain();
+        gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(vol, t + 0.006);
+        gn.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
+        src.connect(bp); bp.connect(gn); gn.connect(a.destination);
+        src.start(t); src.stop(t + 0.13);
+        // 「パッ」の破裂感
+        const o = a.createOscillator(), og = a.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(110, t + 0.05);
+        og.gain.setValueAtTime(vol * 0.9, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.07);
+      };
+      const t0 = a.currentTime;
+      splash(t0, 0.35);
+      splash(t0 + 0.17, 0.3);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   water: () => beep(1500, 0.06, 'sine', 0.05),
   chime: () => { beep(1046, 0.1, 'triangle', 0.08); setTimeout(() => beep(1318, 0.18, 'triangle', 0.08), 90); },
   trash: () => beep(200, 0.15, 'sawtooth', 0.05),
@@ -293,7 +323,7 @@ function takeNoodle(i) {
   b.men = true;
   b.menFly = true;   // てぼが運ばれてくるまで麺は描かない
   S.active = target;
-  sfx.drain();
+  beep(520, 0.06, 'triangle', 0.05);   // てぼを持ち上げる
   const el = teboEls[i].el;
   el.classList.remove('drain');
   void el.offsetWidth; // アニメーションを再生し直す
@@ -329,8 +359,7 @@ function flyTebo(slotEl, target, b) {
     { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.92 },
     { ...at(ex, ey, 0.9, -60), opacity: 0 },
   ], { duration: 1150, easing: 'ease-in-out' });
-  setTimeout(() => sfx.drain(), 380);
-  setTimeout(() => sfx.drain(), 540);
+  setTimeout(() => sfx.pappa(), 250);   // 上下に振るのに合わせて「パッパ」
   anim.onfinish = done;
   anim.oncancel = done;
 }

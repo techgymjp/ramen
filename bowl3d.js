@@ -59,52 +59,81 @@ const Bowl3D = (() => {
   });
   bowlInnerTex.wrapS = THREE.RepeatWrapping;
 
-  // チャーシューの断面：照りのある焼き色のふち、ばら色の肉、渦巻く脂
-  const chashuTex = canvasTex(512, 512, (g, w) => {
+  // チャーシューの断面（巻きばらチャーシュー）：タレのしみた濃いふち、ばら色の肉、
+  // ふぞろいに巻いた脂の層、肉の繊維、タレの照り
+  const chashuTex = canvasTex(1024, 1024, (g, w) => {
     const c = w / 2;
     let seed = 21;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-    // 焼き色のふち（でこぼこ）
-    g.fillStyle = '#4a1d0a';
-    g.beginPath();
-    for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.08) {
-      const r = c * (0.97 + Math.sin(a * 5) * 0.015 + rnd() * 0.02);
-      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
-      a === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
-    }
-    g.fill();
-    const bark = g.createRadialGradient(c, c, c * 0.7, c, c, c);
-    bark.addColorStop(0, '#9a4a22'); bark.addColorStop(0.6, '#6e2c10'); bark.addColorStop(1, '#3d1606');
-    g.fillStyle = bark; g.beginPath(); g.arc(c, c, c * 0.93, 0, Math.PI * 2); g.fill();
-    // 肉（外は濃い、中はばら色）
-    const meat = g.createRadialGradient(c * 0.95, c * 0.95, 10, c, c, c * 0.84);
-    meat.addColorStop(0, '#f2b8a0'); meat.addColorStop(0.55, '#d98a70'); meat.addColorStop(0.85, '#b9614a'); meat.addColorStop(1, '#8e3e26');
-    g.fillStyle = meat; g.beginPath(); g.arc(c, c, c * 0.84, 0, Math.PI * 2); g.fill();
-    // 肉の繊維
-    g.strokeStyle = 'rgba(150,60,40,.18)'; g.lineWidth = 2;
-    for (let k = 0; k < 60; k++) {
-      const a = rnd() * Math.PI * 2, r = rnd() * c * 0.75;
-      g.beginPath(); g.arc(c, c, r, a, a + 0.4 + rnd() * 0.6); g.stroke();
-    }
-    // 渦巻く脂（やわらかい縁）
-    g.lineCap = 'round';
-    const spiral = (lw, col) => {
-      g.strokeStyle = col; g.lineWidth = lw;
+    const n2 = (a, k) => Math.sin(a * 3 + k) * 0.5 + Math.sin(a * 7 + k * 2.3) * 0.3 + Math.sin(a * 13 + k * 0.7) * 0.2;
+    // 外側はタレの焼き色（形のでこぼこがはみ出してもいいように全面に塗る）
+    g.fillStyle = '#4c1b08'; g.fillRect(0, 0, w, w);
+    const bark = g.createRadialGradient(c, c, c * 0.6, c, c, c * 0.95);
+    bark.addColorStop(0, '#8a3c18'); bark.addColorStop(0.6, '#6a2810'); bark.addColorStop(1, '#3e1405');
+    g.fillStyle = bark; g.beginPath(); g.arc(c, c, c * 0.95, 0, Math.PI * 2); g.fill();
+    // 肉の部分（ふちがでこぼこ）
+    const blob = (rad, k) => {
       g.beginPath();
-      for (let a = 0; a < Math.PI * 6.2; a += 0.04) {
-        const r = 10 + a * 10.5 + Math.sin(a * 3) * 3;
+      for (let a = 0; a <= Math.PI * 2 + 0.01; a += 0.03) {
+        const r = rad * (1 + n2(a, k) * 0.05);
         const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
         a === 0 ? g.moveTo(x, y) : g.lineTo(x, y);
       }
+      g.closePath();
+    };
+    const meat = g.createRadialGradient(c * 0.97, c * 0.95, 20, c, c, c * 0.8);
+    meat.addColorStop(0, '#e2a587'); meat.addColorStop(0.45, '#cc8466'); meat.addColorStop(0.8, '#ab5f42'); meat.addColorStop(1, '#8a4429');
+    g.fillStyle = meat; blob(c * 0.8, 1); g.fill();
+    // タレのしみ込み（ふち側が茶色く）
+    const soak = g.createRadialGradient(c, c, c * 0.55, c, c, c * 0.82);
+    soak.addColorStop(0, 'rgba(120,50,20,0)'); soak.addColorStop(1, 'rgba(120,50,20,.55)');
+    g.fillStyle = soak; blob(c * 0.8, 1); g.fill();
+    // 肉の繊維（細い筋が巻きに沿って流れる）
+    for (let k = 0; k < 900; k++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.76;
+      const len = 0.05 + rnd() * 0.12;
+      g.strokeStyle = rnd() < 0.5 ? 'rgba(150,70,45,.22)' : 'rgba(255,215,195,.18)';
+      g.lineWidth = 1 + rnd() * 1.5;
+      g.beginPath(); g.arc(c, c, r, a, a + len); g.stroke();
+    }
+    // ふぞろいに巻いた脂の層（太さも位置もゆらぐ）
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const layer = (r0, turns, wid, col, k) => {
+      g.strokeStyle = col; g.lineWidth = wid;
+      g.beginPath();
+      let first = true;
+      for (let a = 0; a < Math.PI * 2 * turns; a += 0.025) {
+        const r = r0 + a * (c * 0.68 - r0) / (Math.PI * 2 * turns) + n2(a, k) * 9;
+        const x = c + Math.cos(a + k) * r, y = c + Math.sin(a + k) * r;
+        first ? g.moveTo(x, y) : g.lineTo(x, y); first = false;
+      }
       g.stroke();
     };
-    spiral(26, 'rgba(250,215,190,.35)');
-    spiral(15, 'rgba(255,236,218,.9)');
-    spiral(6, 'rgba(255,250,240,.9)');
-    // タレの照り
-    const hi = g.createRadialGradient(c * 0.68, c * 0.6, 4, c * 0.68, c * 0.6, c * 0.6);
-    hi.addColorStop(0, 'rgba(255,255,255,.5)'); hi.addColorStop(0.5, 'rgba(255,240,220,.12)'); hi.addColorStop(1, 'rgba(255,255,255,0)');
-    g.fillStyle = hi; g.beginPath(); g.arc(c, c, c * 0.9, 0, Math.PI * 2); g.fill();
+    layer(18, 2.6, 38, 'rgba(245,205,180,.35)', 0.4);   // 脂のにじみ
+    layer(18, 2.6, 22, 'rgba(252,232,214,.92)', 0.4);   // 脂の層
+    layer(18, 2.6, 8, 'rgba(255,248,238,.85)', 0.4);    // 脂のいちばん白いところ
+    // 脂のかたまり
+    for (let k = 0; k < 7; k++) {
+      const a = rnd() * Math.PI * 2, r = c * (0.2 + rnd() * 0.5);
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r, s2 = 10 + rnd() * 22;
+      const f = g.createRadialGradient(x, y, 0, x, y, s2);
+      f.addColorStop(0, 'rgba(255,244,232,.9)'); f.addColorStop(1, 'rgba(250,225,205,0)');
+      g.fillStyle = f; g.beginPath(); g.ellipse(x, y, s2 * 1.6, s2, a, 0, Math.PI * 2); g.fill();
+    }
+    // まん中の巻き始め
+    g.fillStyle = 'rgba(180,95,65,.6)'; g.beginPath(); g.ellipse(c + 4, c - 3, 16, 11, 0.6, 0, Math.PI * 2); g.fill();
+    // タレの照り（大小のつや）
+    const glaze = (x, y, rx, ry, op) => {
+      const hi = g.createRadialGradient(x, y, 2, x, y, Math.max(rx, ry));
+      hi.addColorStop(0, `rgba(255,250,240,${op})`); hi.addColorStop(1, 'rgba(255,240,220,0)');
+      g.fillStyle = hi; g.beginPath(); g.ellipse(x, y, rx, ry, -0.5, 0, Math.PI * 2); g.fill();
+    };
+    glaze(c * 0.7, c * 0.62, c * 0.32, c * 0.16, 0.45);
+    glaze(c * 1.3, c * 1.25, c * 0.12, c * 0.06, 0.3);
+    for (let k = 0; k < 40; k++) {
+      const a = rnd() * Math.PI * 2, r = c * (0.82 + rnd() * 0.1);
+      glaze(c + Math.cos(a) * r, c + Math.sin(a) * r, 8 + rnd() * 10, 3 + rnd() * 4, 0.35);
+    }
   });
 
   // チャーシューの側面：照りのある焼き色に、脂の層
@@ -321,17 +350,42 @@ const Bowl3D = (() => {
   })();
 
   // チャーシュー：側面は茶色、上面に断面テクスチャ
-  // 厚切りのチャーシュー（少しだけ楕円）
-  const chashuGeo = new THREE.CylinderGeometry(0.27, 0.27, 0.11, 48, 2);
-  chashuGeo.scale(1.08, 1, 0.95);
+  // 厚切りのチャーシュー：ふちがでこぼこの楕円、角は丸く（3種類の形）
+  const CH_R = 0.27, CH_D = 0.085;
+  function makeChashuGeo(k) {
+    const shape = new THREE.Shape();
+    for (let i = 0; i <= 64; i++) {
+      const a = (i / 64) * Math.PI * 2;
+      const r = CH_R * (1 + Math.sin(a * 3 + k) * 0.045 + Math.sin(a * 5 + k * 2) * 0.03 + Math.sin(a * 9 + k) * 0.012);
+      const x = Math.cos(a) * r * 1.1, y = Math.sin(a) * r * 0.93;
+      i === 0 ? shape.moveTo(x, y) : shape.lineTo(x, y);
+    }
+    const geo = new THREE.ExtrudeGeometry(shape, { depth: CH_D, bevelEnabled: true, bevelThickness: 0.018, bevelSize: 0.016, bevelSegments: 3, curveSegments: 64 });
+    // テクスチャの貼り方：切り口は全体に、側面はぐるりと
+    const pos = geo.attributes.position, uv = geo.attributes.uv;
+    const U = CH_R * 1.25;
+    for (const grp of geo.groups) {
+      for (let v = grp.start; v < grp.start + grp.count; v++) {
+        const x = pos.getX(v), y = pos.getY(v), z = pos.getZ(v);
+        if (grp.materialIndex === 0) uv.setXY(v, x / (2 * U) + 0.5, y / (2 * U) + 0.5);
+        else uv.setXY(v, (Math.atan2(y, x) / (Math.PI * 2) + 0.5) * 6, (z + 0.02) / (CH_D + 0.04));
+      }
+    }
+    uv.needsUpdate = true;
+    geo.translate(0, 0, -CH_D / 2);
+    geo.rotateX(-Math.PI / 2);   // 寝かせる（切り口が上）
+    return geo;
+  }
+  const chashuGeos = [makeChashuGeo(0), makeChashuGeo(2.1), makeChashuGeo(4.3)];
+  const chashuGeo = chashuGeos[0];
+  // [0] 切り口、[1] 側面（ExtrudeGeometry のグループ順）
   const chashuMats = [
     new THREE.MeshPhysicalMaterial
-      ? new THREE.MeshPhysicalMaterial({ map: chashuSideTex, roughness: 0.3, clearcoat: 0.8, clearcoatRoughness: 0.2 })
-      : new THREE.MeshStandardMaterial({ map: chashuSideTex, roughness: 0.3 }),
+      ? new THREE.MeshPhysicalMaterial({ map: chashuTex, roughness: 0.38, clearcoat: 0.45, clearcoatRoughness: 0.25 })
+      : new THREE.MeshStandardMaterial({ map: chashuTex, roughness: 0.32 }),
     new THREE.MeshPhysicalMaterial
-      ? new THREE.MeshPhysicalMaterial({ map: chashuTex, roughness: 0.28, clearcoat: 0.9, clearcoatRoughness: 0.15 })
-      : new THREE.MeshStandardMaterial({ map: chashuTex, roughness: 0.28 }),
-    new THREE.MeshStandardMaterial({ map: chashuTex, roughness: 0.35 }),
+      ? new THREE.MeshPhysicalMaterial({ map: chashuSideTex, roughness: 0.28, clearcoat: 0.9, clearcoatRoughness: 0.15, envMap: envTex, envMapIntensity: 0.3 })
+      : new THREE.MeshStandardMaterial({ map: chashuSideTex, roughness: 0.28 }),
   ];
   // 置き場所（奥側に立てかける）
   const CHASHU_POS = [
@@ -342,12 +396,29 @@ const Bowl3D = (() => {
   ];
 
   // ネギ：小口切りの輪
-  const negiGeo = new THREE.TorusGeometry(0.034, 0.014, 6, 14);
-  const negiMats = [
-    new THREE.MeshStandardMaterial({ color: 0x2f8a26, roughness: 0.35 }),
-    new THREE.MeshStandardMaterial({ color: 0x5fb336, roughness: 0.35 }),
-    new THREE.MeshStandardMaterial({ color: 0xcfe9a0, roughness: 0.35 }),
-  ];
+  // 小口切りのネギ：厚みのある輪（外側は濃い緑、切り口と内側は明るい）。XY平面に置く（トーラスと同じ向き）
+  const negiGeo = (() => {
+    const ro = 0.036, ri = 0.026, h = 0.014;
+    const geo = new THREE.LatheGeometry([V(ri, 0), V(ro, 0), V(ro, h), V(ri, h), V(ri, 0)], 16);
+    // 頂点色：外壁は濃い緑、切り口と内壁は明るい黄緑
+    const pos = geo.attributes.position, col = new Float32Array(pos.count * 3);
+    for (let k = 0; k < pos.count; k++) {
+      const r = Math.hypot(pos.getX(k), pos.getZ(k)), y = pos.getY(k);
+      // 外側（皮）は鮮やかな緑、内側に向かって明るい黄緑
+      const cc = new THREE.Color(r > ro - 0.001 ? 0x2f8f22 : 0xd6eda6);
+      if (cc.convertSRGBToLinear) cc.convertSRGBToLinear();
+      col.set([cc.r, cc.g, cc.b], k * 3);
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    geo.translate(0, -h / 2, 0);
+    geo.rotateX(Math.PI / 2);
+    return geo;
+  })();
+  // 青い部分・黄緑・白っぽい根元の3種類（頂点色にかける色）
+  const negiMat = (tint) => (THREE.MeshPhysicalMaterial
+    ? new THREE.MeshPhysicalMaterial({ vertexColors: true, color: tint, roughness: 0.3, clearcoat: 0.6, clearcoatRoughness: 0.2 })
+    : new THREE.MeshStandardMaterial({ vertexColors: true, color: tint, roughness: 0.3 }));
+  const negiMats = [negiMat(0x9fd47e), negiMat(0xffffff), negiMat(0xe8f5d0)];
   // ネギは手前〜まん中に山盛り
   const NEGI_POS = [
     { x: 0.0, z: 0.2 },
@@ -370,8 +441,10 @@ const Bowl3D = (() => {
       const k = i % 3;
       const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * radius;
       o.position.set(Math.cos(a) * r, (1 - r / radius) * 0.11 + rnd() * 0.04, Math.sin(a) * r);
-      o.rotation.set(-Math.PI / 2 + (rnd() - 0.5) * 1.1, (rnd() - 0.5) * 1.1, 0);
-      o.scale.setScalar(1.25);
+      o.rotation.set(-Math.PI / 2 + (rnd() - 0.5) * 1.3, (rnd() - 0.5) * 1.3, rnd() * Math.PI);
+      // 大きさはふぞろい、ななめ切りは楕円に
+      const sz = 0.85 + rnd() * 0.6;
+      o.scale.set(sz * (rnd() < 0.35 ? 1.35 : 1), sz, sz);
       o.updateMatrix();
       inst[k].setMatrixAt(used[k]++, o.matrix);
     }
@@ -446,7 +519,7 @@ const Bowl3D = (() => {
     for (let i = 0; i < MAX_CHASHU; i++) {
       const th = -Math.PI / 2 + (i / MAX_CHASHU) * Math.PI * 2 + 0.2;  // 奥から順に
       const r = 0.5;
-      const m = new THREE.Mesh(chashuGeo, chashuMats);
+      const m = new THREE.Mesh(chashuGeos[i % chashuGeos.length], chashuMats);
       m.position.set(Math.cos(th) * r, SOUP_Y + 0.13 + (i % 2) * 0.012 + i * 0.004, Math.sin(th) * r);
       // 奥の数枚は外側を持ち上げて立てかけ、手前は寝かせる。どれも切り口がこちら（カメラ）を向く
       const back = Math.max(0, -Math.sin(th));
