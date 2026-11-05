@@ -161,6 +161,38 @@ const sfx = {
     } catch (e) { /* 音が出せなくても続行 */ }
   },
   water: () => beep(1500, 0.06, 'sine', 0.05),
+  // スープを注ぐ「ジュワ」：熱いスープがどんぶりに広がる、泡立つような音
+  juwa: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      if (!sfxNoise) {
+        sfxNoise = a.createBuffer(1, a.sampleRate * 0.3, a.sampleRate);
+        const d = sfxNoise.getChannelData(0);
+        for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
+      }
+      const t0 = a.currentTime, dur = 0.75;
+      const src = a.createBufferSource(); src.buffer = sfxNoise; src.loop = true;
+      const bp = a.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 0.9;
+      bp.frequency.setValueAtTime(5500, t0); bp.frequency.exponentialRampToValueAtTime(1800, t0 + dur);
+      const gn = a.createGain();
+      gn.gain.setValueAtTime(0.0001, t0); gn.gain.linearRampToValueAtTime(0.28, t0 + 0.04);
+      gn.gain.setValueAtTime(0.22, t0 + 0.2); gn.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      // 「ジュ」のざらつき：音量を細かくふるわせる
+      const lfo = a.createOscillator(), lg = a.createGain();
+      lfo.frequency.value = 38; lg.gain.value = 0.08;
+      lfo.connect(lg); lg.connect(gn.gain);
+      src.connect(bp); bp.connect(gn); gn.connect(a.destination);
+      src.start(t0); src.stop(t0 + dur + 0.05); lfo.start(t0); lfo.stop(t0 + dur + 0.05);
+      // 泡がはじける小さな音
+      for (let k = 0; k < 7; k++) {
+        const t = t0 + 0.05 + Math.random() * 0.5;
+        const o = a.createOscillator(), og = a.createGain();
+        o.type = 'sine'; o.frequency.setValueAtTime(900 + Math.random() * 900, t); o.frequency.exponentialRampToValueAtTime(400, t + 0.03);
+        og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.05);
+      }
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -301,7 +333,7 @@ function tapBowl(i) {
   if (!b.soup) {
     b.soup = true;
     b.soupT = performance.now();   // 注いだ時刻（スープの揺れと湯気の演出用）
-    beep(330, 0.12, 'sine', 0.07);
+    sfx.juwa();
   } else {
     sfx.tap();
   }
