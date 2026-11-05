@@ -560,7 +560,7 @@ kbd { font-family: inherit; }
   .hud-btn { font-size: 10px; padding: 0 4px; }
   #hud { flex-wrap: nowrap; justify-content: space-between; white-space: nowrap; }
   .hud-btn .lbl { display: none; }
-  .bin .bin-img { width: 82%; margin: 0 auto; }
+  .bin .bin-img { width: 94%; margin: 0 auto; }
   .three .bowl-wrap { margin-top: -12px !important; }
   #bowlArea .bowl-slot:nth-child(n+4) { margin-top: -6px; }
   #entrance { width: 70px; }

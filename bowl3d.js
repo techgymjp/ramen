@@ -985,7 +985,7 @@ const Bowl3D = (() => {
     let seed = 5;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
     const W = 2.8, D = 2.0;
-    const binCam = [[0, 3.5, 3.0], [0, 0.12, 0.05], 38];
+    const binCam = [[0, 2.7, 2.15], [0, 0.1, 0.1], 42];   // 近づけて大きく
 
     const binChashu = snapshot(280, 200, (scene) => {
       scene.add(makeTray(W, D, 0.34));
@@ -994,8 +994,9 @@ const Bowl3D = (() => {
         for (let col = 0; col < 5; col++) {
           const m = new THREE.Mesh(chashuGeo, chashuMats);
           if (row > 1) continue;
-          m.scale.set(1.0, 1.0, 1.0);
-          m.position.set(-1.0 + col * 0.42, 0.25 + col * 0.03, -0.35 + row * 0.75);
+          if (col > 3) continue;
+          m.scale.set(1.25, 1.25, 1.25);
+          m.position.set(-0.93 + col * 0.62, 0.27 + col * 0.03, -0.42 + row * 0.85);
           m.rotation.set(0.15, 0, -0.45 + (rnd() - 0.5) * 0.1, 'YXZ');
           scene.add(m);
         }
@@ -1004,9 +1005,9 @@ const Bowl3D = (() => {
 
     const binNegi = snapshot(280, 200, (scene) => {
       scene.add(makeTray(W, D, 0.34));
-      for (let i = 0; i < 520; i++) {
+      for (let i = 0; i < 300; i++) {
         const m = new THREE.Mesh(negiGeo, negiMats[i % 3]);
-        m.scale.setScalar(2.1);
+        m.scale.setScalar(3.2);
         const x = (rnd() - 0.5) * (W - 0.25), z = (rnd() - 0.5) * (D - 0.25);
         const dome = 0.28 * (1 - Math.pow(x / (W / 2), 2)) * (1 - Math.pow(z / (D / 2), 2));
         m.position.set(x, 0.1 + dome + rnd() * 0.06, z);
