@@ -551,7 +551,7 @@ kbd { font-family: inherit; }
 }
 
 @media (max-width: 640px) {
-  #shop { height: 236px; }
+  #shop { height: 214px; }
   #shop::before { height: 38%; }
   #wall { height: 38%; }
   #shop { background-position: 0 38%, 0 0, 0 0, 0 0; }
