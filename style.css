@@ -157,8 +157,8 @@ body {
 }
 .seat {
   position: relative;
-  width: 17%;
-  min-width: 60px;
+  width: 15.5%;
+  min-width: 56px;
   height: 200px;
   display: flex;
   flex-direction: column;
@@ -197,7 +197,7 @@ body {
 .bubble .hard.normal { color: #555; }
 .pbar { height: 5px; background: #ddd; border-radius: 3px; margin-top: 2px; overflow: hidden; }
 .pbar > div { height: 100%; background: #4c4; }
-.react { font-size: 14px; font-weight: bold; margin-bottom: 6px; background: #fff8; border-radius: 6px; padding: 1px 4px; }
+.react { white-space: nowrap; font-size: 14px; font-weight: bold; margin-bottom: 6px; background: #fff8; border-radius: 6px; padding: 1px 4px; }
 .react.good { color: #c60; }
 .react.bad { color: #c00; }
 .coin {
@@ -564,9 +564,11 @@ kbd { font-family: inherit; }
   .harigami { right: 6px; top: 14px; width: 66px; font-size: 9px; padding: 4px 2px; }
   .harigami::first-line { font-size: 10px; }
   #seats { left: 128px; right: 4px; }
-  .seat { min-width: 0; width: 19%; }
+  .seat { min-width: 0; width: 16.4%; }
   .cust { font-size: 36px; }
-  .bubble { min-width: 0; font-size: 10px; padding: 2px 3px; }
+  .bubble { min-width: 0; font-size: 9px; padding: 2px 2px; }
+  .react { font-size: 10px; }
+  .seat:last-child .react { transform: translateX(-30%); }
   #bowlArea { --bs: 1.05; gap: 2px 0; }
   .slip { padding: 4px 4px 2px; }
   .slip .no { font-size: 8px; margin-right: 2px; }

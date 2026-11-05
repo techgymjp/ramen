@@ -2,7 +2,7 @@
 
 // ===================== 設定 =====================
 const DAY_LEN = 180;          // 営業時間（実時間・秒）
-const SEAT_COUNT = 5;
+const SEAT_COUNT = 6;          // カウンター6席（どんぶりも3列×2行）
 const POT_CAP = 6;            // 麺茹で機のてぼ（麺かご）の数
 const BOIL_TIME = 6;          // 茹で上がりまでの秒数（ピピッと鳴る）
 const OVER_TIME = 6;          // ピピッから何秒で茹ですぎ（ゴミ）になるか
@@ -304,7 +304,7 @@ function takeReadyNoodle() {
 // ワンタップで、そのどんぶりのお客さんの注文どおりの量がのる。
 // 1タップで1人前（チャーシューなら数枚、ネギならひとつかみ）がのる。
 // 同じ具を2回のせると「のせすぎ」でゴミになる
-const PIECES = { chashu: 4, negi: 3 };   // 1人前で飛んでいく個数（見た目）
+const PIECES = { chashu: 8, negi: 6 };   // 1人前で飛んでいく個数（見た目）
 
 function addTopping(key) {
   const b = activeBowl();
@@ -322,7 +322,7 @@ function addTopping(key) {
   b.fly[key] = 1;   // 全部着地するまでは描かない
   const n = PIECES[key];
   for (let k = 0; k < n; k++) {
-    setTimeout(() => flyTopping(key, b, S.bowls.indexOf(b), k, k === n - 1), k * 90);
+    setTimeout(() => flyTopping(key, b, S.bowls.indexOf(b), k, k === n - 1), k * 70);
   }
 }
 
@@ -927,7 +927,7 @@ function showHelp() {
       <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
       <li>麺を入れたまま、お客さんが帰ってしまったラーメン</li>
     </ul>
-    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 6〜0 席1〜5</p>
+    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6に出す</p>
     <div class="btn-row">
       <button class="btn sub" id="backBtn">もどる</button>
       <button class="btn" id="startBtn">開店！</button>
@@ -941,8 +941,7 @@ document.addEventListener('keydown', (ev) => {
   if (!running || ev.repeat) return;
   const k = ev.key.toLowerCase();
   if (k.length !== 1) return;
-  if ('6789'.includes(k)) tapCustomer(Number(k) - 6);
-  else if (k === '0') tapCustomer(4);
+  if (k >= '1' && k <= String(SEAT_COUNT)) tapCustomer(Number(k) - 1);
   else if (k === 'q') addNoodle();
   else if (k === 'w') takeReadyNoodle();
   else if (k === 'g') pickWater();
