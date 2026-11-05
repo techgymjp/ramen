@@ -12,8 +12,6 @@ const Bowl3D = (() => {
   const MAX_NEGI = 3;
   const SOUP_Y = 0.46;
 
-  let renderer, canvas, camera, host;
-  const scenes = [];   // 席ごとのシーン
 
   // ---------- テクスチャ ----------
   function canvasTex(w, h, draw) {
@@ -233,97 +231,144 @@ const Bowl3D = (() => {
     return { scene, soup, noodles, chashu, negi, steam };
   }
 
-  // ---------- 公開API ----------
-  function init(hostEl, seatCount) {
-    host = hostEl;
+  // ---------- 描画ビュー（キャンバス1枚に、どんぶり何杯でも） ----------
+  // 斜め上から見下ろす（どんぶりの側面の模様も見える角度）
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 20);
+  camera.position.set(0, 1.85, 3.1);
+  camera.lookAt(0, 0.42, 0);
+  let encoded = false;
+
+  function makeView(hostEl, count, cls) {
+    let renderer;
     try {
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     } catch (e) {
-      return false;
+      return null;
     }
     renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
     renderer.setClearColor(0x000000, 0);
     renderer.autoClear = false;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
-    for (const t of [bowlOuterTex, chashuTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
-    canvas = renderer.domElement;
-    canvas.className = 'bowl3d';
-    host.appendChild(canvas);
-    // 斜め上から見下ろす（どんぶりの側面の模様も見える角度）
-    camera = new THREE.PerspectiveCamera(40, 1, 0.1, 20);
-    camera.position.set(0, 1.85, 3.1);
-    camera.lookAt(0, 0.42, 0);
-    for (let i = 0; i < seatCount; i++) scenes.push(makeScene(i));
+    if (!encoded) {
+      for (const t of [bowlOuterTex, chashuTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
+      encoded = true;
+    }
+    const canvas = renderer.domElement;
+    canvas.className = 'bowl3d ' + (cls || '');
+    hostEl.appendChild(canvas);
+    const scenes = [];
+    for (let i = 0; i < count; i++) scenes.push(makeScene(i));
+    let lastW = 0, lastH = 0;
+
+    // どんぶり1つ分のビューポート（ホスト内の座標・CSS px）
+    function viewportOf(el) {
+      const hr = hostEl.getBoundingClientRect();
+      const r = el.getBoundingClientRect();
+      const size = r.width * 1.3;
+      return {
+        x: r.left - hr.left + r.width / 2 - size / 2,
+        y: r.top - hr.top + r.height / 2 - size * 0.6,
+        size,
+      };
+    }
+
+    // items[i] = null | { el, soup, men, noodleFrac, chashu, negi }
+    function draw(items, time) {
+      const hr = hostEl.getBoundingClientRect();
+      const W = Math.round(hr.width), H = Math.round(hr.height);
+      if (W !== lastW || H !== lastH) {
+        renderer.setSize(W, H, false);
+        canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+        lastW = W; lastH = H;
+      }
+      renderer.setScissorTest(false);
+      renderer.clear();
+      renderer.setScissorTest(true);
+      for (let i = 0; i < scenes.length; i++) {
+        const it = items[i];
+        if (!it) continue;
+        const s = scenes[i];
+        const vp = viewportOf(it.el);
+        const glY = H - vp.y - vp.size;
+        renderer.setViewport(vp.x, glY, vp.size, vp.size);
+        renderer.setScissor(vp.x, glY, vp.size, vp.size);
+        renderer.clearDepth();
+
+        s.soup.visible = it.soup;
+        s.noodles.visible = it.men;
+        const nNoodle = Math.ceil(s.noodles.children.length * (it.noodleFrac == null ? 1 : it.noodleFrac));
+        s.noodles.children.forEach((m, k) => { m.visible = k < nNoodle; });
+        s.chashu.forEach((m, k) => { m.visible = k < it.chashu; });
+        s.negi.forEach((g, k) => { g.visible = k < it.negi; });
+        // 湯気（スープが入っているときだけ）
+        s.steam.forEach((sp) => {
+          const p = (time / 2600 + sp.userData.phase) % 1;
+          sp.visible = it.soup;
+          sp.position.set(sp.userData.x + Math.sin(p * 6 + sp.userData.phase * 9) * 0.06, 0.7 + p * 0.9, -0.05);
+          const sc = 0.35 + p * 0.55;
+          sp.scale.set(sc, sc, sc);
+          sp.material.opacity = Math.sin(p * Math.PI) * 0.5;
+        });
+        renderer.render(s.scene, camera);
+      }
+    }
+
+    // 具が着地する画面上の位置（飛んでいく演出の終点）
+    function pieceScreenPos(slot, key, index, el) {
+      const s = scenes[slot];
+      const obj = key === 'chashu' ? s.chashu[Math.min(index, MAX_CHASHU - 1)] : s.negi[Math.min(index, MAX_NEGI - 1)];
+      const v = obj.position.clone().project(camera);
+      const vp = viewportOf(el);
+      const hr = hostEl.getBoundingClientRect();
+      return {
+        x: hr.left + vp.x + (v.x + 1) / 2 * vp.size,
+        y: hr.top + vp.y + (1 - v.y) / 2 * vp.size,
+        scale: vp.size / 150,
+      };
+    }
+    return { draw, pieceScreenPos };
+  }
+
+  // ---------- 公開API ----------
+  let kitchen = null;   // 厨房正面のどんぶり
+  let counter = null;   // カウンターに出したラーメン
+
+  function init(kitchenHost, counterHost, seatCount) {
+    kitchen = makeView(kitchenHost, seatCount, 'kitchen3d');
+    if (!kitchen) return false;
+    counter = makeView(counterHost, seatCount, 'counter3d');
     api.ok = true;
     return true;
   }
 
-  // どんぶり1つ分のビューポート（ホスト内の座標・CSS px）
-  function viewportOf(wrapEl) {
-    const hr = host.getBoundingClientRect();
-    const r = wrapEl.getBoundingClientRect();
-    const size = r.width * 1.3;
-    return {
-      x: r.left - hr.left + r.width / 2 - size / 2,
-      y: r.top - hr.top + r.height / 2 - size * 0.6,
-      size,
-    };
-  }
-
-  let lastW = 0, lastH = 0;
+  // 厨房のどんぶり（作っている途中）
   function draw(bowls, wraps, time) {
-    const hr = host.getBoundingClientRect();
-    const W = Math.round(hr.width), H = Math.round(hr.height);
-    if (W !== lastW || H !== lastH) {
-      renderer.setSize(W, H, false);
-      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
-      lastW = W; lastH = H;
-    }
-    renderer.setScissorTest(false);
-    renderer.clear();
-    renderer.setScissorTest(true);
-    for (let i = 0; i < scenes.length; i++) {
-      const b = bowls[i];
-      if (!b) continue;
-      const s = scenes[i];
-      const vp = viewportOf(wraps[i]);
-      const glY = H - vp.y - vp.size;
-      renderer.setViewport(vp.x, glY, vp.size, vp.size);
-      renderer.setScissor(vp.x, glY, vp.size, vp.size);
-      renderer.clearDepth();
-
-      s.soup.visible = b.soup;
-      s.noodles.visible = b.men && !b.menFly;
-      const nC = b.tops.chashu - b.fly.chashu, nN = b.tops.negi - b.fly.negi;
-      s.chashu.forEach((m, k) => { m.visible = k < nC; });
-      s.negi.forEach((g, k) => { g.visible = k < nN; });
-      // 湯気（スープが入っているときだけ）
-      s.steam.forEach((sp) => {
-        const p = (time / 2600 + sp.userData.phase) % 1;
-        sp.visible = b.soup;
-        sp.position.set(sp.userData.x + Math.sin(p * 6 + sp.userData.phase * 9) * 0.06, 0.7 + p * 0.9, -0.05);
-        const sc = 0.35 + p * 0.55;
-        sp.scale.set(sc, sc, sc);
-        sp.material.opacity = Math.sin(p * Math.PI) * 0.5;
-      });
-      renderer.render(s.scene, camera);
-    }
+    kitchen.draw(bowls.map((b, i) => b && {
+      el: wraps[i],
+      soup: b.soup,
+      men: b.men && !b.menFly,
+      chashu: b.tops.chashu - b.fly.chashu,
+      negi: b.tops.negi - b.fly.negi,
+    }), time);
   }
 
-  // 具が着地する画面上の位置（飛んでいく演出の終点）
-  function pieceScreenPos(slot, key, index, wrapEl) {
-    const s = scenes[slot];
-    const obj = key === 'chashu' ? s.chashu[Math.min(index, MAX_CHASHU - 1)] : s.negi[Math.min(index, MAX_NEGI - 1)];
-    const v = obj.position.clone().project(camera);
-    const vp = viewportOf(wrapEl);
-    const hr = host.getBoundingClientRect();
-    return {
-      x: hr.left + vp.x + (v.x + 1) / 2 * vp.size,
-      y: hr.top + vp.y + (1 - v.y) / 2 * vp.size,
-      scale: vp.size / 150,
-    };
+  // カウンターのラーメン（items[i] = null | { el, chashu, negi, eaten: 0〜1 }）
+  function drawCounter(items, time) {
+    if (!counter) return;
+    counter.draw(items.map((it) => it && {
+      el: it.el,
+      soup: true,
+      men: it.eaten < 0.95,
+      noodleFrac: 1 - it.eaten,
+      chashu: Math.ceil(it.chashu * (1 - it.eaten * 1.3)),
+      negi: Math.ceil(it.negi * (1 - it.eaten * 1.6)),
+    }), time);
   }
 
-  const api = { ok: false, init, draw, pieceScreenPos };
+  function pieceScreenPos(slot, key, index, el) {
+    return kitchen.pieceScreenPos(slot, key, index, el);
+  }
+
+  const api = { ok: false, init, draw, drawCounter, pieceScreenPos };
   return api;
 })();

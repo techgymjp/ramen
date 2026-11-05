@@ -8,6 +8,7 @@ const BOIL_TIME = 6;          // 茹で上がりまでの秒数（ピピッと�
 const OVER_TIME = 6;          // ピピッから何秒で茹ですぎ（ゴミ）になるか
 const COST_NOODLE = 100;      // 茹ですぎの麺を捨てたときの損失
 const COST_BOWL = 300;        // ラーメンを捨てたときの損失
+const EAT_TIME = 4;          // 食べ終わるまでの秒数
 const WATER_BONUS = 6;        // 水を出すと待てる時間が少し延びる（秒）
 
 const TOPPINGS = [
@@ -379,7 +380,7 @@ function startEating(seatIdx, c) {
   S.money += pay + tip;
   S.served++;
   S.sales[c.order]++;
-  c.state = 'eating'; c.timer = 4;
+  c.state = 'eating'; c.timer = EAT_TIME;
   c.react = react; c.reactCls = rep > 0 ? 'good' : 'bad';
   showCoin(seatIdx, '+' + yen(pay + tip) + (tip ? '（チップ込）' : ''));
   sfx.chime();
@@ -533,10 +534,10 @@ function buildUI() {
   for (let i = 0; i < SEAT_COUNT; i++) {
     const root = document.createElement('div');
     root.className = 'seat';
-    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div>';
+    root.innerHTML = '<div class="slot-top"></div><div class="cust"></div><div class="stool"></div><div class="served-spot"></div><div class="glass"><div class="ice"></div></div>';
     root.addEventListener('pointerdown', () => tapCustomer(i));
     seats.appendChild(root);
-    seatEls.push({ root, top: root.children[0], cust: root.children[1], key: '' });
+    seatEls.push({ root, top: root.children[0], cust: root.children[1], spot: root.querySelector('.served-spot'), key: '' });
   }
 
   // 麺茹で機（ステンレスの箱に、てぼ6つ）
@@ -579,7 +580,7 @@ function buildUI() {
   }
 
   // どんぶりを3Dで描く（使えない環境では2Dのまま）
-  if (Bowl3D.init && Bowl3D.init(area.parentElement, SEAT_COUNT)) $('game').classList.add('three');
+  if (Bowl3D.init && Bowl3D.init(area.parentElement, $('shop'), SEAT_COUNT)) $('game').classList.add('three');
 
   // 具材の什器（厨房の右側）
   const ing = $('ingredients');
@@ -625,6 +626,9 @@ function render() {
     const c = S.seats[i];
     const e = seatEls[i];
     e.root.classList.toggle('has-cust', !!c);
+    e.root.classList.toggle('has-dish', !!c && (c.state === 'hot' || c.state === 'eating'));
+    e.root.classList.toggle('eating', !!c && c.state === 'eating');
+    e.root.classList.toggle('has-water', !!c && c.water);
     if (!c) {
       if (e.key !== '') { e.key = ''; e.top.innerHTML = ''; e.cust.textContent = ''; }
       e.root.classList.remove('target');
@@ -634,8 +638,9 @@ function render() {
     const key = c.id + c.state + c.water + flash;
     if (e.key !== key) {
       e.key = key;
-      const cup = c.water ? '<span class="cup">🥛</span>' : '';
-      e.cust.innerHTML = (c.state === 'eating' ? c.face + '🍜' : c.state === 'hot' ? c.face + '♨️' : c.face) + cup;
+      // 3Dが使えるときは、出したラーメンはカウンターの上に3Dで表示する
+      const dish = Bowl3D.ok ? '' : c.state === 'eating' ? '🍜' : c.state === 'hot' ? '♨️' : '';
+      e.cust.innerHTML = c.face + dish;
       if (c.state === 'waiting' || c.state === 'hot') {
         const m = MENU[c.order];
         const head = flash ? `<div class="react bad">${flash}</div>`
@@ -708,7 +713,16 @@ function render() {
 }
 
 function render3D() {
-  if (Bowl3D.ok) Bowl3D.draw(S.bowls, bowlEls.map((e) => e.wrap), performance.now());
+  if (!Bowl3D.ok) return;
+  const now = performance.now();
+  Bowl3D.draw(S.bowls, bowlEls.map((e) => e.wrap), now);
+  // お客さんに出したラーメン（熱くて待っている／食べている）
+  Bowl3D.drawCounter(S.seats.map((c, i) => {
+    if (!c || (c.state !== 'hot' && c.state !== 'eating')) return null;
+    const rec = MENU[c.order].rec;
+    const eaten = c.state === 'eating' ? Math.min(1, 1 - c.timer / EAT_TIME) : 0;
+    return { el: seatEls[i].spot, chashu: rec.chashu, negi: rec.negi, eaten };
+  }), now);
 }
 
 // ===================== ループ =====================

@@ -307,6 +307,13 @@ body {
 .bowl3d { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
 .three .bowl-wrap .bowl { visibility: hidden; }
 .three .bowl-who { position: relative; z-index: 2; }
+/* カウンターに出したラーメンの置き場所（3Dで描く） */
+.served-spot { position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; pointer-events: none; }
+.three .seat.has-dish .cust { transform: translateY(-22px); }
+.three .seat.has-dish .slot-top { transform: translateY(-22px); }
+.three .seat.eating .cust { animation: slurp .5s infinite; }
+@keyframes slurp { 0%, 100% { transform: translateY(-22px); } 50% { transform: translateY(-16px) rotate(-3deg); } }
+.counter3d { z-index: 2; }
 .bowl-slot {
   flex: 1; min-width: 0;
   display: flex; flex-direction: column; align-items: center;
@@ -475,11 +482,37 @@ kbd { font-family: inherit; }
 .cup-label { font-size: 11px; font-weight: bold; }
 .cup-label .key { display: block; font-size: 9px; color: #888; font-weight: normal; }
 .hand-water .seat.target { cursor: copy; }
-.cust .cup { font-size: 20px; position: absolute; right: -14px; bottom: 0; }
+/* カウンターに置いたお冷のグラス */
+.seat .glass {
+  display: none;
+  position: absolute; bottom: -12px; left: calc(50% + 30px);
+  width: 18px; height: 26px; z-index: 3; pointer-events: none;
+  border: 1.5px solid #ffffffcc; border-top-width: 1px;
+  border-radius: 2px 2px 4px 4px;
+  background:
+    linear-gradient(90deg, #ffffff88 0 18%, transparent 18% 70%, #ffffff44 70% 80%, transparent 80%),
+    linear-gradient(#0000 0 18%, #cfeaf7cc 18% 100%);
+  box-shadow: 0 2px 2px #0003, inset 0 -3px 0 #ffffff66;
+}
+.seat .glass .ice {
+  position: absolute; left: 3px; top: 7px; width: 7px; height: 6px;
+  background: #ffffffd0; border-radius: 2px; transform: rotate(15deg);
+  box-shadow: 5px 3px 0 -1px #ffffffb0;
+}
+.seat.has-water .glass { display: block; animation: glassin .25s ease-out; }
+@keyframes glassin { from { transform: translateY(-14px) scale(1.2); opacity: 0; } to { transform: none; opacity: 1; } }
 .bubble .rec { font-size: 9px; font-weight: normal; color: #555; }
 .bubble .nowater { font-size: 10px; color: #07c; }
 
 @media (max-width: 640px) {
   #cups { left: 72px; width: 54px; }
   .cup-stack { font-size: 14px; }
+}
+
+@media (max-width: 640px) {
+  .served-spot { width: 46px; height: 46px; bottom: -28px; }
+  .seat .glass { left: calc(50% + 18px); width: 13px; height: 20px; bottom: -10px; }
+  .seat .glass .ice { left: 2px; top: 5px; width: 5px; height: 4px; }
+  .three .seat.has-dish .cust, .three .seat.has-dish .slot-top { transform: translateY(-16px); }
+  @keyframes slurp { 0%, 100% { transform: translateY(-16px); } 50% { transform: translateY(-11px) rotate(-3deg); } }
 }
