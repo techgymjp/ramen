@@ -17,10 +17,11 @@ const TOPPINGS = [
 ];
 
 const MENU = {
-  ramen:      { name: 'ラーメン',             price: 800,  weight: 4, rec: { chashu: 1, negi: 1 } },
-  chashumen:  { name: 'チャーシューメン',     price: 1100, weight: 3, rec: { chashu: 4, negi: 1 } },
-  negiramen:  { name: 'ネギラーメン',         price: 950,  weight: 3, rec: { chashu: 1, negi: 3 } },
-  negichashu: { name: 'ネギチャーシューメン', price: 1250, weight: 2, rec: { chashu: 4, negi: 3 } },
+  // rec: その具を1タップするかどうか（1 = のせる、0 = のせない）
+  ramen:      { name: 'ラーメン',             price: 800,  weight: 4, rec: { chashu: 0, negi: 0 } },
+  chashumen:  { name: 'チャーシューメン',     price: 1100, weight: 3, rec: { chashu: 1, negi: 0 } },
+  negiramen:  { name: 'ネギラーメン',         price: 950,  weight: 3, rec: { chashu: 0, negi: 1 } },
+  negichashu: { name: 'ネギチャーシューメン', price: 1250, weight: 2, rec: { chashu: 1, negi: 1 } },
 };
 
 const FACES = ['👨', '👩', '👴', '👵', '🧑', '👦', '👧', '🧔', '👱', '👨‍🦰', '👩‍🦱', '🧑‍💼', '👷', '🧑‍🎓'];
@@ -282,30 +283,32 @@ function takeReadyNoodle() {
 
 // トッピング：什器から具が飛び出して、選択中のどんぶりへ飛んでいく
 // ワンタップで、そのどんぶりのお客さんの注文どおりの量がのる。
+// 1タップで1人前（チャーシューなら数枚、ネギならひとつかみ）がのる。
 // 同じ具を2回のせると「のせすぎ」でゴミになる
+const PIECES = { chashu: 4, negi: 3 };   // 1人前で飛んでいく個数（見た目）
+
 function addTopping(key) {
   const b = activeBowl();
   if (!b) { toast('どんぶりがありません'); return; }
   if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
-  const c = S.seats[S.active];
-  const amount = c ? MENU[c.order].rec[key] : 1;
   const name = TOPPINGS.find((t) => t.key === key).name;
   sfx.tap();
   if (b.tops[key] > 0) {
-    flyTopping(key, b, S.active, b.tops[key], false);
+    flyTopping(key, b, S.active, 0, false);
     S.bowls[S.active] = newBowl();
     throwAway(`${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
     return;
   }
-  b.tops[key] = amount;
-  for (let n = 0; n < amount; n++) {
-    setTimeout(() => flyTopping(key, b, S.bowls.indexOf(b), n, true), n * 90);
+  b.tops[key] = 1;
+  b.fly[key] = 1;   // 全部着地するまでは描かない
+  const n = PIECES[key];
+  for (let k = 0; k < n; k++) {
+    setTimeout(() => flyTopping(key, b, S.bowls.indexOf(b), k, k === n - 1), k * 90);
   }
-  b.fly[key] += amount;   // 着地するまでは描かない
 }
 
 function flyTopping(key, b, slot, index, land) {
-  if (slot < 0) { if (land) b.fly[key] = Math.max(0, b.fly[key] - 1); return; }  // どんぶりがもうない
+  if (slot < 0) { if (land) b.fly[key] = 0; return; }  // どんぶりがもうない
   const bin = binEls[key];
   bin.classList.remove('pop');
   void bin.offsetWidth;
@@ -333,7 +336,7 @@ function flyTopping(key, b, slot, index, land) {
 
   const finish = () => {
     el.remove();
-    if (land) b.fly[key] = Math.max(0, b.fly[key] - 1);
+    if (land) b.fly[key] = 0;
   };
   if (!el.animate) { finish(); return; }
   const spin = key === 'chashu' ? 540 : 360;
@@ -547,7 +550,8 @@ function binSVG(key) {
 }
 
 function recipeText(rec) {
-  return TOPPINGS.map((t) => `${t.name}×${rec[t.key]}`).join('・');
+  const names = TOPPINGS.filter((t) => rec[t.key]).map((t) => t.name);
+  return names.length ? names.join('・') + 'を1タップ' : 'トッピングなし（そのまま）';
 }
 
 function buildUI() {
@@ -732,7 +736,7 @@ function render() {
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
     for (const t of TOPPINGS) {
-      for (let n = 0; n < b.tops[t.key] - b.fly[t.key]; n++) {
+      for (let n = 0; n < (b.tops[t.key] - b.fly[t.key]) * PIECES[t.key]; n++) {
         const [x, y] = TOP_POS[t.key][n % TOP_POS[t.key].length];
         html += `<div class="top ${t.key}" style="left:${x}%;top:${y}%"></div>`;
       }
@@ -740,7 +744,7 @@ function render() {
     e.tops.innerHTML = html;
     e.info.innerHTML = !b.soup ? 'タップでスープ'
       : !b.men || b.menFly ? 'スープ入り<br>麺を待っています'
-      : TOPPINGS.map((t) => `${t.name}${b.tops[t.key]}`).join(' ');
+      : (TOPPINGS.filter((t) => b.tops[t.key]).map((t) => t.name).join('・') || '麺入り');
   }
 }
 
@@ -753,7 +757,7 @@ function render3D() {
     if (!c || (c.state !== 'hot' && c.state !== 'eating')) return null;
     const rec = MENU[c.order].rec;
     const eaten = c.state === 'eating' ? Math.min(1, 1 - c.timer / EAT_TIME) : 0;
-    return { el: seatEls[i].spot, chashu: rec.chashu, negi: rec.negi, eaten };
+    return { el: seatEls[i].spot, chashu: rec.chashu * PIECES.chashu, negi: rec.negi * PIECES.negi, eaten };
   }), now);
 }
 
@@ -829,7 +833,7 @@ function showTitle() {
       <li>🍜 <b>麺茹で機</b>の空いている穴をタップで<b>麺を入れる</b>（6玉まで同時に茹でられます）</li>
       <li>🥣 お客さんの数だけ厨房正面に空の<b>どんぶり</b>が出てきます。タップで<b>スープを入れる</b>（スープがないと麺は入れられません）</li>
       <li>🔔 <b>ピピッ</b>と鳴ったてぼをタップで<b>麺を出す</b>（湯切りしてスープ入りのどんぶりへ）</li>
-      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → ワンタップで注文どおりの量が、選んでいるどんぶりへ飛んでいく（2回のせるとゴミ）</li>
+      <li>🥩 右の什器の<b>チャーシュー・ネギ</b>をタップ → 1タップで1人前が、選んでいるどんぶりへ飛んでいく（チャーシューメンはチャーシュー、ネギラーメンはネギ、ネギチャーシューメンは両方を1タップずつ。ラーメンはそのまま。2回のせるとゴミ）</li>
       <li>🙋 <b>お客さんをタップ</b>すると、その人の前のどんぶりを出します</li>
     </ul>
     <h2>メニュー</h2>

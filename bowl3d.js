@@ -447,8 +447,8 @@ const Bowl3D = (() => {
       el: wraps[i],
       soup: b.soup,
       men: b.men && !b.menFly,
-      chashu: b.tops.chashu - b.fly.chashu,
-      negi: b.tops.negi - b.fly.negi,
+      chashu: (b.tops.chashu - b.fly.chashu) * MAX_CHASHU,   // 1タップ = 1人前
+      negi: (b.tops.negi - b.fly.negi) * MAX_NEGI,
     }), time);
   }
 
