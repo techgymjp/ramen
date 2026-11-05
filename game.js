@@ -326,6 +326,34 @@ const sfx = {
       noiseBurst(a, t, 0.06, 0.12, 'lowpass', 2000, 600);
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // 食べ終わって帰る「ごちそうさま」：明るい2音のチャイム＋引き戸がガラガラ
+  thanks: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      [[880, 0], [1175, 0.13]].forEach(([f, d]) => {
+        const o = a.createOscillator(), og = a.createGain();
+        o.type = 'triangle'; o.frequency.value = f;
+        og.gain.setValueAtTime(0.0001, t + d); og.gain.linearRampToValueAtTime(0.13, t + d + 0.01);
+        og.gain.exponentialRampToValueAtTime(0.001, t + d + 0.35);
+        o.connect(og); og.connect(a.destination); o.start(t + d); o.stop(t + d + 0.4);
+      });
+      for (let k = 0; k < 7; k++) noiseBurst(a, t + 0.3 + k * 0.045, 0.05, 0.07, 'bandpass', 900, 600);   // ガラガラ
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
+  // 怒って帰る：引き戸をピシャッと閉める音
+  slam: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t = a.currentTime;
+      for (let k = 0; k < 4; k++) noiseBurst(a, t + k * 0.03, 0.04, 0.09, 'bandpass', 1000, 700);
+      noiseBurst(a, t + 0.14, 0.12, 0.35, 'lowpass', 1800, 300);
+      const o = a.createOscillator(), og = a.createGain();
+      o.type = 'sine'; o.frequency.setValueAtTime(120, t + 0.14); o.frequency.exponentialRampToValueAtTime(60, t + 0.3);
+      og.gain.setValueAtTime(0.4, t + 0.14); og.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
+      o.connect(og); og.connect(a.destination); o.start(t + 0.14); o.stop(t + 0.34);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -857,7 +885,11 @@ function update(dt) {
       }
     } else {
       c.timer -= dt;
-      if (c.timer <= 0) S.seats[i] = null;
+      if (c.timer <= 0) {
+        // 帰るときの音：食べ終わったら「ごちそうさま」の音、怒っていたら戸をピシャッと閉める音
+        if (c.state === 'eating') sfx.thanks(); else sfx.slam();
+        S.seats[i] = null;
+      }
     }
   }
 
