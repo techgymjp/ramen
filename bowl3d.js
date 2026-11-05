@@ -25,10 +25,10 @@ const Bowl3D = (() => {
 
   // どんぶりの外側：朱色、ふちと高台は白（写真のデザイン）
   // LatheGeometry の v は頂点ごとに等分なので、外側の7点に合わせて
-  // 上1/6 = ふち（白）、1/6〜1/2 = 胴（朱）、下半分 = 高台（白）
-  const bowlOuterTex = canvasTex(1024, 384, (g, w, h) => {
+  // 外側は9点（8区間）：上1/8 = ふちの細い白、1/8〜5/8 = ふくらんだ胴（朱）、下3/8 = 高台（白）
+  const bowlOuterTex = canvasTex(1024, 512, (g, w, h) => {
     g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, w, h);
-    const top = h / 6, mid = h / 2;
+    const top = h / 8, mid = h * 5 / 8;
     const red = g.createLinearGradient(0, top, 0, mid);
     red.addColorStop(0, '#b3281d'); red.addColorStop(1, '#8e1a14');
     g.fillStyle = red; g.fillRect(0, top, w, mid - top);
@@ -132,11 +132,13 @@ const Bowl3D = (() => {
   const V = (x, y) => new THREE.Vector2(x, y);
   // 写真のような、まっすぐ開いたすり鉢形のどんぶり
   // 外側：底 → 高台の外 → 高台の上 → 胴（下）→ 胴（上）→ ふち
+  // 胴をふくらませて、上から見てもふちの外に朱色が見える形に
+  // 外側：底 → 高台の外 → 高台の上 → 胴の下 → 胴のふくらみ → 胴の上 → ふち
   const outerGeo = new THREE.LatheGeometry(
-    [V(0.30, 0), V(0.37, 0), V(0.38, 0.08), V(0.41, 0.09), V(0.71, 0.36), V(1.0, 0.62), V(1.025, 0.665)], 72);
-  const INNER = [V(0.0, 0.1), V(0.34, 0.1), V(0.65, 0.37), V(0.88, 0.57), V(0.965, 0.635), V(1.0, 0.665)];
+    [V(0.30, 0), V(0.40, 0), V(0.41, 0.08), V(0.46, 0.09), V(0.85, 0.22), V(1.06, 0.42), V(1.06, 0.59), V(1.04, 0.648), V(1.028, 0.665)], 72);
+  const INNER = [V(0.0, 0.1), V(0.36, 0.1), V(0.76, 0.27), V(0.98, 0.48), V(1.0, 0.62), V(0.995, 0.665)];
   const innerGeo = new THREE.LatheGeometry(INNER, 72);
-  const rimGeo = new THREE.TorusGeometry(1.012, 0.016, 8, 72);
+  const rimGeo = new THREE.TorusGeometry(1.013, 0.02, 8, 72);
   const outerMat = new THREE.MeshStandardMaterial({ map: bowlOuterTex, roughness: 0.22, metalness: 0.02, side: THREE.FrontSide });
   const innerMat = new THREE.MeshStandardMaterial({ map: bowlInnerTex, roughness: 0.18, side: THREE.BackSide });
   const rimMat = new THREE.MeshStandardMaterial({ color: 0xfbfaf6, roughness: 0.2 });
@@ -391,7 +393,7 @@ const Bowl3D = (() => {
       const r = el.getBoundingClientRect();
       // 厨房のどんぶりは枠いっぱい（となりのどんぶりとスレスレ）に描く
       const wide = el.classList.contains('bowl-wrap');
-      const size = r.width * (wide ? 1.03 : 1.0);
+      const size = r.width * (wide ? 0.97 : 0.95);
       return {
         x: r.left - hr.left + r.width / 2 - size / 2,
         y: r.top - hr.top + r.height / 2 - size * (wide ? 0.5 : 0.56),
