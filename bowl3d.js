@@ -359,8 +359,8 @@ const Bowl3D = (() => {
   // ---------- 描画ビュー（キャンバス1枚に、どんぶり何杯でも） ----------
   // 斜め上から見下ろす（どんぶりの側面の模様も見える角度）
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 20);
-  camera.position.set(0, 1.85, 3.1);
-  camera.lookAt(0, 0.42, 0);
+  camera.position.set(0, 2.45, 2.7);   // 高めのアングルで中身がよく見えるように
+  camera.lookAt(0, 0.38, 0);
   let encoded = false;
 
   function makeView(hostEl, count, cls) {
@@ -389,10 +389,12 @@ const Bowl3D = (() => {
     function viewportOf(el) {
       const hr = hostEl.getBoundingClientRect();
       const r = el.getBoundingClientRect();
-      const size = r.width * 1.3;
+      // 厨房のどんぶりは枠いっぱい（となりのどんぶりとスレスレ）に描く
+      const wide = el.classList.contains('bowl-wrap');
+      const size = r.width * (wide ? 1.03 : 1.0);
       return {
         x: r.left - hr.left + r.width / 2 - size / 2,
-        y: r.top - hr.top + r.height / 2 - size * 0.6,
+        y: r.top - hr.top + r.height / 2 - size * (wide ? 0.5 : 0.56),
         size,
       };
     }

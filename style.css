@@ -390,7 +390,7 @@ body {
 .bowl3d { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 1; }
 .three .bowl-wrap .bowl { visibility: hidden; }
 /* カウンターに出したラーメンの置き場所（3Dで描く） */
-.served-spot { position: absolute; bottom: -34px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; pointer-events: none; }
+.served-spot { position: absolute; bottom: -40px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; pointer-events: none; }
 .three .seat.has-dish .cust { transform: translateY(-22px); }
 .three .seat.has-dish .slot-top { transform: translateY(-22px); }
 .three .seat.eating .cust { animation: slurp .5s infinite; }
@@ -407,9 +407,11 @@ body {
 .bowl-slot.active { border-color: #f90; background: #fff4dd; }
 .bowl-slot.empty { cursor: default; }
 .bowl-slot.empty .bowl-wrap { visibility: hidden; }
-.bowl-wrap { margin-top: -2px; }
 .bowl-wrap { width: calc(96px * var(--bs)); height: calc(96px * var(--bs)); }
 .bowl-wrap .bowl { transform: scale(var(--bs)); transform-origin: top left; }
+/* 3Dのときは、どんぶりを枠の幅いっぱいに（となりとスレスレ） */
+.three .bowl-wrap { width: 100%; height: auto; aspect-ratio: 1 / 0.78; margin-top: 2px; }
+.three #bowlArea .bowl-slot { padding-left: 0; padding-right: 0; border-left: 0; border-right: 0; }
 .bowl {
   position: relative;
   width: 96px; height: 96px;
