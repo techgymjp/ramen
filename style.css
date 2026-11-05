@@ -697,3 +697,16 @@ span.ord-ic.top { width: 26px; height: 24px; }
   .slip .ord-txt { font-size: 15px; }
   .ord { gap: 0; }
 }
+
+/* 伝票は「1番 ネギ」のように1行で */
+.slip { flex-direction: row !important; align-items: baseline; justify-content: center; gap: 6px; white-space: nowrap; height: 40px !important; overflow: hidden; }
+.slip .no, .slip .nm { display: inline !important; }
+.slip .no { font-size: 13px; }
+.slip .nm { font-size: 18px; letter-spacing: -0.5px; }
+.slip .nm.long { font-size: 15px; letter-spacing: -1px; }
+@media (max-width: 640px) {
+  .slip { height: 28px !important; gap: 2px; padding: 3px 2px 1px !important; }
+  .slip .no { font-size: 9px; }
+  .slip .nm { font-size: 12px; }
+  .slip .nm.long { font-size: 9.5px; letter-spacing: -1px; }
+}
