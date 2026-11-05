@@ -119,34 +119,81 @@ const Bowl3D = (() => {
   });
   chashuSideTex.wrapS = THREE.RepeatWrapping;
 
-  // スープの表面：澄んだ醤油色に、ゆらぐ油の膜と小さな油の粒
-  const soupTex = canvasTex(512, 512, (g, w) => {
+  // スープ：深みのある琥珀色の醤油スープ（ふちほど濃く、まん中は明るく透ける）
+  const soupTex = canvasTex(1024, 1024, (g, w) => {
     const c = w / 2;
-    const grd = g.createRadialGradient(c, c, 10, c, c, c);
-    grd.addColorStop(0, '#b8692c'); grd.addColorStop(0.6, '#9c4f1c'); grd.addColorStop(1, '#6e3010');
+    const grd = g.createRadialGradient(c * 0.92, c * 0.9, 10, c, c, c);
+    grd.addColorStop(0, '#d98a2c'); grd.addColorStop(0.35, '#c06a1c'); grd.addColorStop(0.7, '#9a4812'); grd.addColorStop(1, '#5e2606');
     g.fillStyle = grd; g.fillRect(0, 0, w, w);
     let seed = 3;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-    // 大きくぼんやりした油の膜
-    for (let i = 0; i < 18; i++) {
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.8;
-      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r, s = 20 + rnd() * 45;
-      const o = g.createRadialGradient(x, y, 0, x, y, s);
-      o.addColorStop(0, 'rgba(240,170,70,.35)'); o.addColorStop(1, 'rgba(240,170,70,0)');
-      g.fillStyle = o; g.beginPath(); g.arc(x, y, s, 0, Math.PI * 2); g.fill();
+    // ゆらぐ濃淡（だしの濁り）
+    for (let i = 0; i < 40; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.85;
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r, s2 = 40 + rnd() * 90;
+      const o = g.createRadialGradient(x, y, 0, x, y, s2);
+      const light = rnd() < 0.5;
+      o.addColorStop(0, light ? 'rgba(230,150,70,.22)' : 'rgba(90,35,8,.2)'); o.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = o; g.beginPath(); g.arc(x, y, s2, 0, Math.PI * 2); g.fill();
     }
-    // 小さな油の粒（少なめ・透明感）
-    for (let i = 0; i < 70; i++) {
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.92;
-      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
-      const s = 1.5 + rnd() * 5;
-      g.strokeStyle = `rgba(255, ${200 + rnd() * 40 | 0}, 120, ${0.35 + rnd() * 0.3})`;
-      g.lineWidth = 1.2;
-      g.beginPath(); g.ellipse(x, y, s, s * 0.85, 0, 0, Math.PI * 2); g.stroke();
-      g.fillStyle = 'rgba(255,240,200,.35)';
-      g.beginPath(); g.arc(x - s * 0.3, y - s * 0.3, s * 0.35, 0, Math.PI * 2); g.fill();
+    // ごく小さな背脂の粒
+    for (let i = 0; i < 160; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.93;
+      g.fillStyle = `rgba(255,240,215,${0.25 + rnd() * 0.35})`;
+      g.beginPath(); g.arc(c + Math.cos(a) * r, c + Math.sin(a) * r, 1 + rnd() * 2.2, 0, Math.PI * 2); g.fill();
     }
   });
+
+  // 浮いている油の玉（こがね色で、ふちが光り、てっぺんにハイライト）。別の層にしてゆっくり漂わせる
+  const oilTex = canvasTex(1024, 1024, (g, w) => {
+    const c = w / 2;
+    let seed = 41;
+    const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+    const drop = (x, y, s2) => {
+      const body = g.createRadialGradient(x - s2 * 0.25, y - s2 * 0.25, s2 * 0.1, x, y, s2);
+      body.addColorStop(0, 'rgba(255,220,120,.8)'); body.addColorStop(0.7, 'rgba(250,180,60,.7)'); body.addColorStop(1, 'rgba(255,238,180,.95)');
+      g.fillStyle = body; g.beginPath(); g.arc(x, y, s2, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(255,245,210,.8)'; g.lineWidth = Math.max(1, s2 * 0.12);
+      g.beginPath(); g.arc(x, y, s2 * 0.94, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.9)';
+      g.beginPath(); g.ellipse(x - s2 * 0.35, y - s2 * 0.4, s2 * 0.28, s2 * 0.18, -0.6, 0, Math.PI * 2); g.fill();
+    };
+    // 大きめの油の玉をいくつか、そのまわりに中くらい・小さいものを群れで
+    for (let k = 0; k < 9; k++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.8;
+      const cx = c + Math.cos(a) * r, cy = c + Math.sin(a) * r;
+      drop(cx, cy, 22 + rnd() * 22);
+      for (let m = 0; m < 14; m++) {
+        const aa = rnd() * Math.PI * 2, rr = 25 + rnd() * 70;
+        const x = cx + Math.cos(aa) * rr, y = cy + Math.sin(aa) * rr;
+        if (Math.hypot(x - c, y - c) > c * 0.94) continue;
+        drop(x, y, 5 + rnd() * 12);
+      }
+    }
+    for (let m = 0; m < 120; m++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.92;
+      drop(c + Math.cos(a) * r, c + Math.sin(a) * r, 3 + rnd() * 6);
+    }
+  });
+  const oilMat = new THREE.MeshPhysicalMaterial
+    ? new THREE.MeshPhysicalMaterial({ map: oilTex, transparent: true, depthWrite: false, roughness: 0.05, clearcoat: 1, clearcoatRoughness: 0.02 })
+    : new THREE.MeshStandardMaterial({ map: oilTex, transparent: true, depthWrite: false, roughness: 0.05 });
+
+  // 映り込み用のかんたんな環境（上に蛍光灯、まわりは店の暖色）
+  const envTex = (() => {
+    const face = (top) => {
+      const c = document.createElement('canvas'); c.width = c.height = 64;
+      const g = c.getContext('2d');
+      g.fillStyle = top ? '#fff6e0' : '#8a6a48'; g.fillRect(0, 0, 64, 64);
+      if (top) { g.fillStyle = '#ffffff'; g.fillRect(8, 26, 48, 6); g.fillRect(8, 40, 48, 6); }
+      else { const gr = g.createLinearGradient(0, 0, 0, 64); gr.addColorStop(0, '#f2e2c0'); gr.addColorStop(1, '#5a3a20'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); }
+      return c;
+    };
+    const side = face(false);
+    const t = new THREE.CubeTexture([side, side, face(true), face(false), side, side]);
+    t.needsUpdate = true;
+    return t;
+  })();
 
   // スープの表面に映る光（ゆらゆら動かして液体らしく）
   const sheenTex = canvasTex(256, 256, (g, w) => {
@@ -198,8 +245,8 @@ const Bowl3D = (() => {
     return g;
   }
   const soupMat = new THREE.MeshPhysicalMaterial
-    ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.03, reflectivity: 0.6 })
-    : new THREE.MeshStandardMaterial({ map: soupTex, roughness: 0.15 });
+    ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.02, envMap: envTex, envMapIntensity: 0.2, emissive: 0x2a0e02 })
+    : new THREE.MeshStandardMaterial({ map: soupTex, roughness: 0.15, envMap: envTex });
 
   // 麺：細めの縮れ麺を、麺線をそろえて山にたたむ。端はスープに沈む。照りと色むらで生っぽさを出す
   const noodleMat = new THREE.MeshPhysicalMaterial
@@ -363,6 +410,10 @@ const Bowl3D = (() => {
     sheen.position.z = 0.006;
     soup.add(sheen);
     soup.userData.sheen = sheen;
+    const oil = new THREE.Mesh(new THREE.CircleGeometry(SOUP_R * 0.97, 48), oilMat);
+    oil.position.z = 0.003;
+    soup.add(oil);
+    soup.userData.oil = oil;
 
     // お玉から注がれるスープの筋
     const pour = new THREE.Group();
@@ -438,6 +489,10 @@ const Bowl3D = (() => {
     const slosh = Math.exp(-age * 1.3);
     soup.rotation.set(-Math.PI / 2 + Math.sin(age * 7.5) * 0.07 * slosh, Math.cos(age * 6.3) * 0.05 * slosh, time * 0.00008);
     // 映り込みの光がゆらぐ
+    // 油の玉がゆっくり漂う（揺れたときは大きく回る）
+    soup.userData.oil.rotation.z = Math.sin(time / 6000) * 0.25 + Math.sin(age * 6) * 0.3 * slosh;
+    soup.userData.oil.position.x = Math.sin(time / 4100) * 0.015;
+    soup.userData.oil.position.y = Math.cos(time / 4700) * 0.015;
     const sh = soup.userData.sheen;
     sh.rotation.z = -time * 0.00008 + Math.sin(time / 900) * 0.15 + Math.sin(age * 9) * 0.4 * slosh;
     sh.scale.set(1 + Math.sin(time / 700) * 0.04, 1 + Math.cos(time / 800) * 0.04, 1);
@@ -488,7 +543,7 @@ const Bowl3D = (() => {
     renderer.autoClear = false;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     if (!encoded) {
-      for (const t of [bowlOuterTex, bowlInnerTex, chashuTex, chashuSideTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
+      for (const t of [bowlOuterTex, bowlInnerTex, chashuTex, chashuSideTex, soupTex, oilTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
       encoded = true;
     }
     const canvas = renderer.domElement;
