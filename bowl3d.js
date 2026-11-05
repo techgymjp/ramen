@@ -23,27 +23,41 @@ const Bowl3D = (() => {
     return t;
   }
 
-  // どんぶりの外側：朱色に白い雷文の帯
-  const bowlOuterTex = canvasTex(1024, 256, (g, w, h) => {
-    g.fillStyle = '#9e1c17'; g.fillRect(0, 0, w, h);
-    const grd = g.createLinearGradient(0, 0, 0, h);
-    grd.addColorStop(0, '#0000'); grd.addColorStop(1, '#0005');
-    g.fillStyle = grd; g.fillRect(0, 0, w, h);
-    // 雷文の帯（上の方）
-    const top = 18, bh = 54;
-    g.fillStyle = '#f6efe2'; g.fillRect(0, top, w, bh);
-    g.strokeStyle = '#9e1c17'; g.lineWidth = 5;
-    const s = 44;
-    for (let x = 0; x < w; x += s + 8) {
-      const y = top + (bh - s) / 2;
+  // どんぶりの外側：朱色、ふちと高台は白（写真のデザイン）
+  // LatheGeometry の v は頂点ごとに等分なので、外側の7点に合わせて
+  // 上1/6 = ふち（白）、1/6〜1/2 = 胴（朱）、下半分 = 高台（白）
+  const bowlOuterTex = canvasTex(1024, 384, (g, w, h) => {
+    g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, w, h);
+    const top = h / 6, mid = h / 2;
+    const red = g.createLinearGradient(0, top, 0, mid);
+    red.addColorStop(0, '#b3281d'); red.addColorStop(1, '#8e1a14');
+    g.fillStyle = red; g.fillRect(0, top, w, mid - top);
+    // ろくろ目のような細い線
+    g.strokeStyle = 'rgba(255,150,110,.25)'; g.lineWidth = 2;
+    for (const y of [top + 34, top + 41, mid - 30]) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, mid, w, 4);
+  });
+
+  // どんぶりの内側：白地に、ふちの下に朱の雷文の帯
+  // 内側の6点に合わせて、上1/5 = ふち、その下1/5 = 雷文の帯
+  const bowlInnerTex = canvasTex(2048, 320, (g, w, h) => {
+    g.fillStyle = '#fbfaf6'; g.fillRect(0, 0, w, h);
+    const seg = h / 5;
+    g.fillStyle = '#a8241b';
+    g.fillRect(0, 0, w, 5);                 // ふちの朱線
+    const top = seg + 6, bh = seg - 14;     // 雷文の帯
+    g.strokeStyle = '#a8241b'; g.lineWidth = 4;
+    const s = bh, gap = 10;
+    for (let x = 4; x < w; x += s + gap) {
+      const y = top;
+      g.strokeRect(x, y, s, s);
       g.beginPath();
-      g.moveTo(x, y + s); g.lineTo(x, y); g.lineTo(x + s, y); g.lineTo(x + s, y + s);
-      g.lineTo(x + 12, y + s); g.lineTo(x + 12, y + 12); g.lineTo(x + s - 12, y + 12);
-      g.lineTo(x + s - 12, y + s - 12); g.lineTo(x + 24, y + s - 12);
+      g.moveTo(x + s - 9, y + s); g.lineTo(x + s - 9, y + 9); g.lineTo(x + 9, y + 9);
+      g.lineTo(x + 9, y + s - 18); g.lineTo(x + s - 18, y + s - 18); g.lineTo(x + s - 18, y + 18);
       g.stroke();
     }
-    g.fillStyle = '#7a1210'; g.fillRect(0, top - 4, w, 4); g.fillRect(0, top + bh, w, 4);
   });
+  bowlInnerTex.wrapS = THREE.RepeatWrapping;
 
   // チャーシューの断面：脂の渦巻き
   const chashuTex = canvasTex(256, 256, (g, w) => {
@@ -68,24 +82,43 @@ const Bowl3D = (() => {
     g.fillStyle = hi; g.beginPath(); g.arc(c, c, c * 0.88, 0, Math.PI * 2); g.fill();
   });
 
-  // スープの表面：背脂と油の粒
+  // スープの表面：澄んだ醤油色に、ゆらぐ油の膜と小さな油の粒
   const soupTex = canvasTex(512, 512, (g, w) => {
     const c = w / 2;
-    const grd = g.createRadialGradient(c, c, 20, c, c, c);
-    grd.addColorStop(0, '#c77a3a'); grd.addColorStop(0.75, '#a95a22'); grd.addColorStop(1, '#7c3c14');
+    const grd = g.createRadialGradient(c, c, 10, c, c, c);
+    grd.addColorStop(0, '#b8692c'); grd.addColorStop(0.6, '#9c4f1c'); grd.addColorStop(1, '#6e3010');
     g.fillStyle = grd; g.fillRect(0, 0, w, w);
     let seed = 3;
     const rnd = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
-    for (let i = 0; i < 140; i++) {
-      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.95;
+    // 大きくぼんやりした油の膜
+    for (let i = 0; i < 18; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.8;
+      const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r, s = 20 + rnd() * 45;
+      const o = g.createRadialGradient(x, y, 0, x, y, s);
+      o.addColorStop(0, 'rgba(240,170,70,.35)'); o.addColorStop(1, 'rgba(240,170,70,0)');
+      g.fillStyle = o; g.beginPath(); g.arc(x, y, s, 0, Math.PI * 2); g.fill();
+    }
+    // 小さな油の粒（少なめ・透明感）
+    for (let i = 0; i < 70; i++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * c * 0.92;
       const x = c + Math.cos(a) * r, y = c + Math.sin(a) * r;
-      const s = 2 + rnd() * 9;
-      g.fillStyle = `rgba(255, ${190 + rnd() * 50 | 0}, 90, ${0.35 + rnd() * 0.4})`;
-      g.beginPath(); g.ellipse(x, y, s, s * 0.8, 0, 0, Math.PI * 2); g.fill();
-      g.fillStyle = 'rgba(255,255,230,.6)';
-      g.beginPath(); g.arc(x - s * 0.3, y - s * 0.3, s * 0.25, 0, Math.PI * 2); g.fill();
+      const s = 1.5 + rnd() * 5;
+      g.strokeStyle = `rgba(255, ${200 + rnd() * 40 | 0}, 120, ${0.35 + rnd() * 0.3})`;
+      g.lineWidth = 1.2;
+      g.beginPath(); g.ellipse(x, y, s, s * 0.85, 0, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = 'rgba(255,240,200,.35)';
+      g.beginPath(); g.arc(x - s * 0.3, y - s * 0.3, s * 0.35, 0, Math.PI * 2); g.fill();
     }
   });
+
+  // スープの表面に映る光（ゆらゆら動かして液体らしく）
+  const sheenTex = canvasTex(256, 256, (g, w) => {
+    const c = w / 2;
+    const o = g.createRadialGradient(c * 0.75, c * 0.7, 0, c * 0.75, c * 0.7, c * 0.55);
+    o.addColorStop(0, 'rgba(255,250,235,.9)'); o.addColorStop(0.4, 'rgba(255,240,210,.35)'); o.addColorStop(1, 'rgba(255,240,210,0)');
+    g.fillStyle = o; g.fillRect(0, 0, w, w);
+  });
+  const sheenMat = new THREE.MeshBasicMaterial({ map: sheenTex, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, opacity: 0.45 });
 
   // 湯気
   const steamTex = canvasTex(128, 128, (g, w) => {
@@ -97,18 +130,36 @@ const Bowl3D = (() => {
 
   // ---------- 形と素材（全どんぶりで共有） ----------
   const V = (x, y) => new THREE.Vector2(x, y);
+  // 写真のような、まっすぐ開いたすり鉢形のどんぶり
+  // 外側：底 → 高台の外 → 高台の上 → 胴（下）→ 胴（上）→ ふち
   const outerGeo = new THREE.LatheGeometry(
-    [V(0.40, 0), V(0.46, 0.02), V(0.47, 0.06), V(0.62, 0.2), V(0.82, 0.42), V(0.96, 0.6), V(1.0, 0.66)], 64);
-  const innerGeo = new THREE.LatheGeometry(
-    [V(0.0, 0.1), V(0.36, 0.11), V(0.6, 0.27), V(0.8, 0.45), V(0.93, 0.6), V(0.97, 0.66)], 64);
-  const rimGeo = new THREE.TorusGeometry(0.985, 0.025, 10, 64);
-  const outerMat = new THREE.MeshStandardMaterial({ map: bowlOuterTex, roughness: 0.3, metalness: 0.05, side: THREE.FrontSide });
-  const innerMat = new THREE.MeshStandardMaterial({ color: 0xfbf7ee, roughness: 0.25, side: THREE.BackSide });
-  const rimMat = new THREE.MeshStandardMaterial({ color: 0xf6efe2, roughness: 0.3 });
+    [V(0.30, 0), V(0.37, 0), V(0.38, 0.08), V(0.41, 0.09), V(0.71, 0.36), V(1.0, 0.62), V(1.025, 0.665)], 72);
+  const INNER = [V(0.0, 0.1), V(0.34, 0.1), V(0.65, 0.37), V(0.88, 0.57), V(0.965, 0.635), V(1.0, 0.665)];
+  const innerGeo = new THREE.LatheGeometry(INNER, 72);
+  const rimGeo = new THREE.TorusGeometry(1.012, 0.016, 8, 72);
+  const outerMat = new THREE.MeshStandardMaterial({ map: bowlOuterTex, roughness: 0.22, metalness: 0.02, side: THREE.FrontSide });
+  const innerMat = new THREE.MeshStandardMaterial({ map: bowlInnerTex, roughness: 0.18, side: THREE.BackSide });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0xfbfaf6, roughness: 0.2 });
 
-  const soupGeo = new THREE.CircleGeometry(0.82, 48);
+  // 高さ y でのどんぶり内側の半径
+  function innerR(y) {
+    for (let k = 1; k < INNER.length; k++) {
+      const a = INNER[k - 1], b = INNER[k];
+      if (y <= b.y) return a.x + (b.x - a.x) * Math.max(0, (y - a.y) / Math.max(1e-6, b.y - a.y));
+    }
+    return INNER[INNER.length - 1].x;
+  }
+  const SOUP_R = innerR(SOUP_Y) - 0.005;
+  const SOUP_BOTTOM = 0.12;
+
+  // スープの面：同心円状に分割して、波打たせる
+  function makeSoupGeo() {
+    const g = new THREE.RingGeometry(0, SOUP_R, 64, 12);
+    g.userData.base = g.attributes.position.array.slice();
+    return g;
+  }
   const soupMat = new THREE.MeshPhysicalMaterial
-    ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.12, clearcoat: 1, clearcoatRoughness: 0.08 })
+    ? new THREE.MeshPhysicalMaterial({ map: soupTex, roughness: 0.08, clearcoat: 1, clearcoatRoughness: 0.03, reflectivity: 0.6 })
     : new THREE.MeshStandardMaterial({ map: soupTex, roughness: 0.15 });
 
   // 麺：ゆるく波打った太めの麺を山盛りに
@@ -197,13 +248,40 @@ const Bowl3D = (() => {
     bowl.add(new THREE.Mesh(outerGeo, outerMat));
     bowl.add(new THREE.Mesh(innerGeo, innerMat));
     const rimMesh = new THREE.Mesh(rimGeo, rimMat);
-    rimMesh.rotation.x = Math.PI / 2; rimMesh.position.y = 0.66;
+    rimMesh.rotation.x = Math.PI / 2; rimMesh.position.y = 0.665;
     bowl.add(rimMesh);
     scene.add(bowl);
 
-    const soup = new THREE.Mesh(soupGeo, soupMat);
+    const soup = new THREE.Mesh(makeSoupGeo(), soupMat);
     soup.rotation.x = -Math.PI / 2; soup.position.y = SOUP_Y;
+    soup.userData.amp = -1;
     scene.add(soup);
+    const sheen = new THREE.Mesh(new THREE.CircleGeometry(SOUP_R * 0.95, 40), sheenMat);
+    sheen.position.z = 0.006;
+    soup.add(sheen);
+    soup.userData.sheen = sheen;
+
+    // お玉から注がれるスープの筋
+    const pour = new THREE.Group();
+    const stream = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 0.8, 14),
+      new THREE.MeshStandardMaterial({ color: 0x8f4a1a, roughness: 0.05, emissive: 0x2a1000, transparent: true, opacity: 0.92 }));
+    stream.position.set(0.0, -0.4, 0);
+    pour.add(stream);
+    // お玉（ステンレスの丸いすくい）
+    const ladle = new THREE.Mesh(new THREE.SphereGeometry(0.24, 20, 12, 0, Math.PI * 2, Math.PI / 2, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0xd5dbe0, metalness: 0.5, roughness: 0.25, side: THREE.DoubleSide }));
+    ladle.position.set(0.16, 0.08, 0);
+    ladle.rotation.z = 1.0;
+    pour.add(ladle);
+    const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 1.0, 8),
+      new THREE.MeshStandardMaterial({ color: 0xc9d0d6, metalness: 0.5, roughness: 0.3 }));
+    handle.position.set(0.62, 0.42, 0);
+    handle.rotation.z = -0.95;
+    pour.add(handle);
+    pour.position.set(0.15, 1.1, 0.1);
+    pour.visible = false;
+    pour.userData.stream = stream;
+    scene.add(pour);
 
     const noodles = new THREE.Group();
     for (const g of noodleGeos) noodles.add(new THREE.Mesh(g, noodleMat));
@@ -225,14 +303,57 @@ const Bowl3D = (() => {
     });
 
     const steam = [];
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: steamTex, transparent: true, depthWrite: false, opacity: 0 }));
-      sp.userData.phase = i / 4 + slot * 0.13;
-      sp.userData.x = (i % 2 ? 0.25 : -0.2) + (i - 1.5) * 0.06;
+      sp.userData.phase = i / 6 + slot * 0.13;
+      sp.userData.x = (i % 2 ? 0.28 : -0.24) + (i - 2.5) * 0.05;
       scene.add(sp);
       steam.push(sp);
     }
-    return { scene, soup, noodles, chashu, negi, steam };
+    return { scene, soup, pour, noodles, chashu, negi, steam };
+  }
+
+  // スープを動かす：注いだ直後は水位が上がって大きく揺れ、その後もゆらゆら
+  function animateSoup(s, age, time) {
+    const soup = s.soup;
+    const fill = Math.min(1, age / 0.6);
+    const level = SOUP_BOTTOM + (SOUP_Y - SOUP_BOTTOM) * (1 - Math.pow(1 - fill, 2));
+    soup.position.y = level;
+    const sc = Math.max(0.05, innerR(level) / SOUP_R);
+    soup.scale.set(sc, sc, 1);
+    // 揺れ（注いだ直後ほど大きい）と、ゆっくり回る表面の脂
+    const slosh = Math.exp(-age * 1.3);
+    soup.rotation.set(-Math.PI / 2 + Math.sin(age * 7.5) * 0.07 * slosh, Math.cos(age * 6.3) * 0.05 * slosh, time * 0.00008);
+    // 映り込みの光がゆらぐ
+    const sh = soup.userData.sheen;
+    sh.rotation.z = -time * 0.00008 + Math.sin(time / 900) * 0.15 + Math.sin(age * 9) * 0.4 * slosh;
+    sh.scale.set(1 + Math.sin(time / 700) * 0.04, 1 + Math.cos(time / 800) * 0.04, 1);
+    sh.material.opacity = 0.4;
+    const amp = 0.04 * Math.exp(-age * 1.8) + 0.0035;
+    if (Math.abs(amp - soup.userData.amp) > 0.0004 || amp > 0.004) {
+      const g = soup.geometry, pos = g.attributes.position, base = g.userData.base;
+      const t = time / 1000;
+      for (let k = 0; k < pos.count; k++) {
+        const x = base[k * 3], y = base[k * 3 + 1];
+        const r = Math.hypot(x, y) / SOUP_R;
+        const ring = Math.sin(r * 16 - age * 10) * Math.exp(-age * 1.8) * 0.04;
+        const idle = Math.sin(x * 9 + t * 1.7) * Math.cos(y * 8 - t * 1.3) * 0.0035;
+        pos.setZ(k, (ring + idle) * (1 - r * r * 0.6));
+      }
+      pos.needsUpdate = true;
+      g.computeVertexNormals();
+      soup.userData.amp = amp;
+    }
+    // 注いでいる間だけ、お玉からの筋を見せる
+    s.pour.visible = age < 0.55;
+    if (s.pour.visible) {
+      const k = Math.max(0, 1 - age / 0.55);
+      const st = s.pour.userData.stream;
+      const len = 1.1 - level;   // お玉から水面まで
+      st.scale.set(0.3 + k * 0.7, len / 0.8, 0.3 + k * 0.7);
+      st.position.y = -len / 2;
+      s.pour.position.y = 1.1;
+    }
   }
 
   // ---------- 描画ビュー（キャンバス1枚に、どんぶり何杯でも） ----------
@@ -254,7 +375,7 @@ const Bowl3D = (() => {
     renderer.autoClear = false;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;
     if (!encoded) {
-      for (const t of [bowlOuterTex, chashuTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
+      for (const t of [bowlOuterTex, bowlInnerTex, chashuTex, soupTex]) if ('encoding' in t) t.encoding = THREE.sRGBEncoding;
       encoded = true;
     }
     const canvas = renderer.domElement;
@@ -299,19 +420,22 @@ const Bowl3D = (() => {
         renderer.clearDepth();
 
         s.soup.visible = it.soup;
+        const age = it.soupAge == null ? 99 : it.soupAge;
+        if (it.soup) animateSoup(s, age, time); else s.pour.visible = false;
         s.noodles.visible = it.men;
         const nNoodle = Math.ceil(s.noodles.children.length * (it.noodleFrac == null ? 1 : it.noodleFrac));
         s.noodles.children.forEach((m, k) => { m.visible = k < nNoodle; });
         s.chashu.forEach((m, k) => { m.visible = k < it.chashu; });
         s.negi.forEach((g, k) => { g.visible = k < it.negi; });
-        // 湯気（スープが入っているときだけ）
+        // 湯気（スープが入っているときだけ。注いだ直後はもくもく）
+        const boost = 1 + 1.6 * Math.exp(-age * 0.8);
         s.steam.forEach((sp) => {
-          const p = (time / 2600 + sp.userData.phase) % 1;
-          sp.visible = it.soup;
-          sp.position.set(sp.userData.x + Math.sin(p * 6 + sp.userData.phase * 9) * 0.06, 0.7 + p * 0.9, -0.05);
-          const sc = 0.35 + p * 0.55;
+          const p = (time / 2400 + sp.userData.phase) % 1;
+          sp.visible = it.soup && age > 0.15;
+          sp.position.set(sp.userData.x + Math.sin(p * 6 + sp.userData.phase * 9) * 0.07, 0.62 + p * 0.95, -0.05);
+          const sc = (0.38 + p * 0.6) * (0.8 + boost * 0.25);
           sp.scale.set(sc, sc, sc);
-          sp.material.opacity = Math.sin(p * Math.PI) * 0.5;
+          sp.material.opacity = Math.min(0.9, Math.sin(p * Math.PI) * 0.55 * boost);
         });
         renderer.render(s.scene, camera);
       }
@@ -649,6 +773,7 @@ const Bowl3D = (() => {
     kitchen.draw(bowls.map((b, i) => b && {
       el: wraps[i],
       soup: b.soup,
+      soupAge: b.soupT ? (time - b.soupT) / 1000 : 99,
       men: b.men && !b.menFly,
       chashu: (b.tops.chashu - b.fly.chashu) * MAX_CHASHU,   // 1タップ = 1人前
       negi: (b.tops.negi - b.fly.negi) * MAX_NEGI,

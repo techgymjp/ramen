@@ -206,6 +206,7 @@ function tapBowl(i) {
   S.active = i;
   if (!b.soup) {
     b.soup = true;
+    b.soupT = performance.now();   // 注いだ時刻（スープの揺れと湯気の演出用）
     beep(330, 0.12, 'sine', 0.07);
   } else {
     sfx.tap();
