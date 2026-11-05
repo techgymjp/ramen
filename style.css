@@ -718,12 +718,31 @@ span.ord-ic.top { width: 26px; height: 24px; }
 #cups .tray { display: flex !important; justify-content: center; gap: 8px; padding: 2px; }
 #cups .tray .c { width: 20px; height: 28px; }
 @media (max-width: 640px) {
-  .boiler-block { position: relative; }
+  /* スマホ：鍋の操作盤は出さず、コップは鍋の外（カウンターのすぐ手前）に置く */
   .pot-ctrl { display: none; }
-  #cups {
-    position: absolute !important; top: 12px; left: 50% !important; transform: translateX(-50%);
-    width: 72% !important; margin: 0; z-index: 3; padding: 2px !important;
-  }
-  #cups .tray { gap: 4px; }
-  #cups .tray .c { width: 14px; height: 20px; }
+  .pot { padding-top: 8px !important; }
+  #cups { margin-bottom: 4px; padding: 3px 2px 4px !important; }
+  #cups .tray { gap: 3px !important; }
+  #cups .tray .c { width: 15px; height: 21px; }
+}
+
+/* 立体的なコップ：ガラスのふち（楕円）・水面・影 */
+#cups {
+  background: linear-gradient(#f4f6f8, #c3cad0 60%, #9aa3aa) !important;
+  box-shadow: 0 3px 4px #0004, inset 0 1px 0 #fff !important;
+}
+#cups .tray .c {
+  position: relative; border: 0 !important; border-radius: 2px 2px 5px 5px / 2px 2px 4px 4px !important;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.75) 0 14%, rgba(255,255,255,.1) 14% 62%, rgba(255,255,255,.45) 62% 72%, rgba(255,255,255,.12) 72%),
+    linear-gradient(rgba(220,240,250,.35) 0 22%, rgba(150,205,235,.85) 22% 100%) !important;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.8), inset 0 -3px 3px rgba(60,120,160,.35), 2px 3px 3px rgba(0,0,0,.28) !important;
+}
+#cups .tray .c::before {   /* ふち */
+  content: ""; position: absolute; left: -1px; right: -1px; top: -3px; height: 6px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.95); background: rgba(230,245,252,.5);
+}
+#cups .tray .c::after {    /* 水面 */
+  content: ""; position: absolute; left: 1px; right: 1px; top: 18%; height: 4px; border-radius: 50%;
+  background: rgba(200,235,250,.95); box-shadow: inset 0 -1px 0 rgba(120,180,215,.6);
 }
