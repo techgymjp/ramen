@@ -236,15 +236,18 @@ function flyTebo(slotEl, target, b) {
   const at = (x, y, sc = 1.1, r = 0) => ({ transform: `translate(${x}px, ${y}px) scale(${sc}) rotate(${r}deg)` });
   const anim = el.animate([
     at(sx, sy, 1),
-    { ...at(sx, up), offset: 0.2 },
-    { ...at(sx, up + 18), offset: 0.3 },   // チャッ
-    { ...at(sx, up), offset: 0.4 },
-    { ...at(sx, up + 18), offset: 0.5 },   // チャッ
-    { ...at((sx + ex) / 2, Math.min(up, ey) - 30), offset: 0.75 },
+    { ...at(sx, up), offset: 0.15 },
+    { ...at(sx, up + 26), offset: 0.23 },  // チャッ（上下に揺らして湯切り）
+    { ...at(sx, up - 4), offset: 0.31 },
+    { ...at(sx, up + 26), offset: 0.39 },  // チャッ
+    { ...at(sx, up - 4), offset: 0.47 },
+    { ...at(sx, up + 26), offset: 0.55 },  // チャッ
+    { ...at((sx + ex) / 2, Math.min(up, ey) - 30), offset: 0.76 },
     { ...at(ex, ey, 1, -35), opacity: 1, offset: 0.92 },
     { ...at(ex, ey, 0.9, -60), opacity: 0 },
-  ], { duration: 1000, easing: 'ease-in-out' });
-  setTimeout(() => sfx.drain(), 300);
+  ], { duration: 1150, easing: 'ease-in-out' });
+  setTimeout(() => sfx.drain(), 380);
+  setTimeout(() => sfx.drain(), 540);
   anim.onfinish = done;
   anim.oncancel = done;
 }

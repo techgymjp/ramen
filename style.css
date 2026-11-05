@@ -280,7 +280,17 @@ body {
   animation: blink .5s infinite; pointer-events: none; z-index: 4;
 }
 .tebo-slot.ready .pipi { display: block; }
-.tebo-slot.ready .tebo { box-shadow: 0 0 0 3px #fb3, 0 0 12px #ff0; }
+.tebo-slot .tebo { transition: transform .25s ease-out; }
+/* ピピッ！で、てぼがお湯から上がってくる */
+.tebo-slot.ready .tebo {
+  transform: translate(-50%, -64%) scale(1.14);
+  box-shadow: 0 0 0 3px #fb3, 0 10px 8px #0006;
+}
+.tebo-slot.ready .tebo::after {
+  content: "💧"; position: absolute; bottom: -14px; left: 40%;
+  font-size: 11px; animation: drip .7s infinite;
+}
+@keyframes drip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(10px); opacity: 0; } }
 .tebo-slot.on .hole { background: radial-gradient(#9cc4d6 0 40%, #5d7d8c 75%); }
 .tebo-slot .chacha {
   display: none; position: absolute; top: 30%; left: 50%; transform: translateX(-50%);
