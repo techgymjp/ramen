@@ -1422,12 +1422,31 @@ function endGame() {
     </table>
     <h2>メニュー別</h2>
     <table>${rows}</table>
+    <div class="share-row">
+      <button class="btn share" id="shareBtn">📣 結果をシェア</button>
+      <a class="btn share x" id="shareX" target="_blank" rel="noopener">𝕏 でポスト</a>
+    </div>
     <div class="btn-row">
       <button class="btn sub" id="topBtn">トップへ</button>
       <button class="btn" id="startBtn">もう一度営業する</button>
     </div>`;
   $('topBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
+  // シェア：スマホは共有メニュー、使えないときは文章をコピー。X には直接ポストもできる
+  const url = location.href.split('?')[0].split('#')[0];
+  const text = `🍜 行列のできるラーメン店\n${rank(S.rep, S.money)}\n利益 ${yen(S.money)}・${S.served}杯（早くておいしい！ ${S.perfect}杯）\n評判 ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`;
+  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + '\n') + '&url=' + encodeURIComponent(url) + '&hashtags=' + encodeURIComponent('行列のできるラーメン店');
+  $('shareBtn').addEventListener('click', async () => {
+    try {
+      if (navigator.share) { await navigator.share({ title: '行列のできるラーメン店', text, url }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+    try {
+      await navigator.clipboard.writeText(text + '\n' + url);
+      toast('結果をコピーしました。SNSに貼り付けてシェアしてね');
+    } catch (e) {
+      window.open($('shareX').href, '_blank', 'noopener');
+    }
+  });
   $('overlay').classList.remove('hidden');
 }
 

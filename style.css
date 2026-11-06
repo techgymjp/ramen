@@ -904,3 +904,10 @@ html, body { overflow-x: hidden; max-width: 100%; }
   #queue .q-more { font-size: 10px; padding: 1px 5px; margin-left: 6px; }
 }
 @media (max-width: 640px) { #queue .q-more { display: none; } }   /* スマホは人数を上のバーで見る */
+
+/* 結果画面のシェアボタン */
+.share-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.panel .btn.share { margin: 0; background: #1d9bf0; font-size: 16px; padding: 8px 18px; text-decoration: none; display: inline-block; }
+.panel .btn.share:hover { background: #1a8cd8; }
+.panel .btn.share.x { background: #111; }
+.panel .btn.share.x:hover { background: #333; }

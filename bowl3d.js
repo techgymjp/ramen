@@ -799,7 +799,12 @@ const Bowl3D = (() => {
   const matCache = {};
   function mat(color, opts) {
     const k = color + JSON.stringify(opts || {});
-    if (!matCache[k]) matCache[k] = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55 }, opts || {}));
+    if (!matCache[k]) {
+      const m = new THREE.MeshStandardMaterial(Object.assign({ color, roughness: 0.55 }, opts || {}));
+      // 色は sRGB で指定しているので、描画用（リニア）に変換して、くすまないようにする
+      if (m.color.convertSRGBToLinear) m.color.convertSRGBToLinear();
+      matCache[k] = m;
+    }
     return matCache[k];
   }
   const PG = {
@@ -843,7 +848,7 @@ const Bowl3D = (() => {
       g.add(o); return o;
     };
     const skinColor = expr === 'angry' ? new THREE.Color(p.skin).lerp(new THREE.Color(0xff5a4a), 0.28).getHex() : p.skin;
-    const skin = mat(skinColor, { roughness: 0.6 });
+    const skin = mat(skinColor, { roughness: 0.65, emissive: new THREE.Color(skinColor).multiplyScalar(0.18) });
     const shirt = mat(p.shirt, { roughness: 0.75 });
     const hair = mat(p.hair, { roughness: 0.5 });
     const dark = mat(0x1a1210, { roughness: 0.3 });
@@ -993,7 +998,11 @@ const Bowl3D = (() => {
   function person(idx, expr) {
     const k = idx + ':' + expr;
     if (!personCache[k]) {
-      personCache[k] = snapshot(128, 160, (scene) => scene.add(buildPerson(PEOPLE[idx % PEOPLE.length], expr)),
+      personCache[k] = snapshot(128, 160, (scene) => {
+        scene.add(buildPerson(PEOPLE[idx % PEOPLE.length], expr));
+        const front = new THREE.DirectionalLight(0xfff4ea, 0.55);   // 顔を正面から明るく照らす
+        front.position.set(0.5, 2.2, 6); scene.add(front);
+      },
         [0, 1.9, 6], [0, 1.74, 0], 16);
     }
     return personCache[k];
