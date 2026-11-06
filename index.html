@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>行列のできるラーメン店</title>
-<link rel="stylesheet" href="style.css?v=20261106021353">
+<link rel="stylesheet" href="style.css?v=20261106021720">
 </head>
 <body>
 <div id="game">
@@ -27,8 +27,9 @@
       <div id="menulist"></div>
       <div class="wall-clock" aria-hidden="true"><div class="hand h"></div><div class="hand m"></div></div>
       <div class="himekuri" aria-hidden="true"><div class="hm-top">昭和</div><div class="hm-day">5</div><div class="hm-week">土曜日</div></div>
-      <!-- 昭和のビールのポスター（オリジナルのイラスト。実在の銘柄は出さない） -->
-      <div class="beer-poster" aria-hidden="true">
+      <!-- 昭和のビールのポスター 3 枚（オリジナルのイラスト。実在の広告・銘柄・人物は使わない） -->
+      <div class="posters" aria-hidden="true">
+        <div class="beer-poster p1">
         <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <linearGradient id="bpPool" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cc8f0"/><stop offset="1" stop-color="#1f8fd0"/></linearGradient>
@@ -88,6 +89,92 @@
           <text x="100" y="149" font-size="7.5" font-weight="bold" fill="#fff" text-anchor="middle" font-family="sans-serif">樽生</text>
           <text x="60" y="163" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle" font-family="sans-serif" letter-spacing=".5">ラーメン横丁ビール</text>
         </svg>
+        </div>
+        <div class="beer-poster p2">
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bp2Sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e74c9"/><stop offset=".55" stop-color="#8ccaf0"/><stop offset=".55" stop-color="#e6f3f8"/><stop offset=".64" stop-color="#bfe2ef"/><stop offset=".66" stop-color="#e7d1a4"/><stop offset="1" stop-color="#d6b47c"/></linearGradient>
+            <linearGradient id="bp2Beer" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d98a14"/><stop offset=".45" stop-color="#ffd24a"/><stop offset="1" stop-color="#c97a10"/></linearGradient>
+            <linearGradient id="bp2Skin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d79c72"/><stop offset=".5" stop-color="#ebba90"/><stop offset="1" stop-color="#cf9268"/></linearGradient>
+          </defs>
+          <rect width="120" height="170" fill="url(#bp2Sky)"/>
+          <path d="M0 92 q15 -5 30 0 t30 0 t30 0 t30 0 V100 H0Z" fill="#fff" opacity=".8"/>
+          <!-- 髪（アップ） -->
+          <path d="M58 22 Q60 8 74 10 Q86 14 82 30 Q86 44 78 52 L62 50 Q54 40 58 22Z" fill="#2a1a10"/>
+          <circle cx="74" cy="10" r="7" fill="#2a1a10"/>
+          <!-- 腕（ジョッキを高く掲げる） -->
+          <path d="M52 76 Q40 70 38 50" stroke="#e3ad84" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <rect x="26" y="20" width="22" height="30" rx="3" fill="url(#bp2Beer)" stroke="#fff" stroke-width="1.4"/>
+          <path d="M24 22 q3 -8 9 -5 q4 -6 10 -1 q6 -2 6 5 Z" fill="#fffdf3"/>
+          <g fill="#fff" opacity=".7"><circle cx="32" cy="36" r="1.2"/><circle cx="40" cy="42" r="1"/><circle cx="42" cy="30" r="1.1"/></g>
+          <!-- 体（砂浜に座る） -->
+          <path d="M62 50 L76 50 L75 58 L63 58Z" fill="url(#bp2Skin)"/>
+          <path d="M50 76 Q52 60 68 58 Q84 60 86 76 L86 106 Q82 118 68 120 Q52 118 50 106Z" fill="url(#bp2Skin)"/>
+          <!-- 白いビキニ -->
+          <path d="M52 74 Q59 69 67 75 Q75 69 84 74 Q84 84 76 86 Q70 87 67 82 Q64 87 58 86 Q51 84 52 74Z" fill="#fbfbf8" stroke="#e2e2dc" stroke-width=".6"/>
+          <path d="M57 72 L62 58 M79 72 L74 58" stroke="#fbfbf8" stroke-width="1.4"/>
+          <path d="M51 108 Q68 114 86 108 L85 118 Q68 124 52 118Z" fill="#fbfbf8" stroke="#e2e2dc" stroke-width=".6"/>
+          <!-- 後ろについた腕 -->
+          <path d="M85 78 Q96 96 98 120" stroke="#d99c72" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- 脚（ひざを立てて横に流す） -->
+          <path d="M52 116 Q34 110 16 118 Q10 124 16 128 Q36 124 56 128Z" fill="url(#bp2Skin)"/>
+          <path d="M60 120 Q40 124 26 136 Q24 142 30 142 Q46 136 66 128Z" fill="#d99c72"/>
+          <!-- 顔（こちらを向いてにっこり） -->
+          <ellipse cx="70" cy="36" rx="13" ry="15" fill="#ebba90"/>
+          <path d="M57 34 Q58 18 70 18 Q83 18 83 34 Q78 24 70 26 Q62 24 57 34Z" fill="#2a1a10"/>
+          <path d="M63 36 q3 -3 6 0 M72 36 q3 -3 6 0" stroke="#2a1a10" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <ellipse cx="62" cy="42" rx="2.4" ry="1.5" fill="#ff8a8a" opacity=".5"/><ellipse cx="78" cy="42" rx="2.4" ry="1.5" fill="#ff8a8a" opacity=".5"/>
+          <path d="M66 45 Q70 50 75 45" stroke="#b3261e" stroke-width="1.6" fill="#fff" stroke-linejoin="round"/>
+          <!-- 商品名（架空） -->
+          <rect x="0" y="146" width="120" height="24" fill="#f5efe2"/>
+          <g font-weight="bold" font-family="sans-serif" text-anchor="middle">
+            <text x="30" y="164" font-size="14" fill="#b3261e">横丁</text>
+            <rect x="48" y="148" width="24" height="20" rx="3" fill="#1f3fa8"/>
+            <text x="60" y="155" font-size="5.5" fill="#fff">樽詰</text>
+            <text x="60" y="166" font-size="10" fill="#fff">生</text>
+            <text x="94" y="164" font-size="14" fill="#b3261e">ビール</text>
+          </g>
+        </svg>
+        </div>
+        <div class="beer-poster p3">
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bp3Sea" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa38a"/><stop offset=".22" stop-color="#b9bba6"/><stop offset=".22" stop-color="#6fb7d4"/><stop offset=".62" stop-color="#3f97c4"/><stop offset=".66" stop-color="#e9eef0"/><stop offset=".72" stop-color="#cdb184"/><stop offset="1" stop-color="#b8935e"/></linearGradient>
+            <linearGradient id="bp3Rainbow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ff6b6b"/><stop offset=".2" stop-color="#ffa94d"/><stop offset=".4" stop-color="#ffe066"/><stop offset=".6" stop-color="#8ce99a"/><stop offset=".8" stop-color="#74c0fc"/><stop offset="1" stop-color="#f783ac"/></linearGradient>
+            <linearGradient id="bp3Skin" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#e4ae86"/><stop offset=".5" stop-color="#f2c6a2"/><stop offset="1" stop-color="#dca47c"/></linearGradient>
+          </defs>
+          <rect width="120" height="170" fill="url(#bp3Sea)"/>
+          <g fill="#868a75" opacity=".7"><ellipse cx="18" cy="20" rx="20" ry="14"/><ellipse cx="62" cy="16" rx="22" ry="13"/><ellipse cx="104" cy="22" rx="20" ry="14"/></g>
+          <path d="M0 108 q15 -4 30 0 t30 0 t30 0 t30 0 V114 H0Z" fill="#fff" opacity=".85"/>
+          <!-- 脚 -->
+          <path d="M48 118 L50 160 L59 160 L60 120Z M62 120 L64 160 L73 160 L74 118Z" fill="url(#bp3Skin)"/>
+          <!-- 体（うしろ姿） -->
+          <path d="M44 62 Q46 52 60 50 Q74 52 76 62 L78 100 Q76 122 60 124 Q44 122 42 100Z" fill="url(#bp3Skin)"/>
+          <!-- 虹色の編みワンピース（背中は大きくあいて、ひもがクロス） -->
+          <path d="M43 92 Q52 102 60 96 Q68 102 77 92 L78 104 Q76 124 60 126 Q44 124 42 104Z" fill="url(#bp3Rainbow)"/>
+          <g stroke="#fff" stroke-width=".5" opacity=".6"><path d="M44 106 L76 106 M43 112 L77 112 M44 118 L76 118"/><path d="M48 98 L52 124 M56 98 L58 126 M64 98 L62 126 M72 98 L68 124"/></g>
+          <path d="M46 62 L72 82 M74 62 L48 82" stroke="#fff" stroke-width="1.2"/>
+          <path d="M47 60 L52 50 M73 60 L68 50" stroke="#fff" stroke-width="1"/>
+          <!-- 腕（片手は振り向きざまに手を振る） -->
+          <path d="M44 66 Q38 84 40 100" stroke="#e8b48c" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+          <path d="M76 64 Q88 54 92 40" stroke="#e8b48c" stroke-width="5.5" fill="none" stroke-linecap="round"/>
+          <rect x="84" y="16" width="18" height="24" rx="3" fill="#ffc63a" stroke="#fff" stroke-width="1.2"/>
+          <path d="M82 18 q3 -7 8 -4 q4 -5 9 -1 q5 -1 5 4 Z" fill="#fffdf3"/>
+          <ellipse cx="93" cy="40" rx="4.5" ry="4" fill="#f2c6a2"/>
+          <!-- 振り向いた顔（肩ごしに笑顔） -->
+          <!-- うしろ髪（肩にかかる）。顔は左肩ごしにこちらを向く -->
+          <path d="M48 26 Q49 12 62 12 Q76 13 76 26 L74 30 Q64 26 56 34 Q54 46 50 54 Q44 44 48 26Z" fill="#2a1a10"/>
+          <ellipse cx="66" cy="34" rx="11" ry="13" fill="#f2c6a2"/>
+          <path d="M55 30 Q56 16 66 16 Q76 18 77 30 Q72 22 64 24 Q58 24 55 30Z" fill="#2a1a10"/>
+          <path d="M64 34 q2.5 -2.5 5 0 M71 34 q2 -2 4 0" stroke="#2a1a10" stroke-width="1.4" fill="none" stroke-linecap="round"/>
+          <ellipse cx="65" cy="40" rx="2.2" ry="1.4" fill="#ff8a8a" opacity=".5"/>
+          <path d="M66 43 Q70 47 74 42" stroke="#b3261e" stroke-width="1.5" fill="#fff" stroke-linejoin="round"/>
+          <!-- 商品名（架空） -->
+          <rect x="0" y="146" width="120" height="24" fill="#1f3fa8"/>
+          <text x="60" y="163" font-size="12" font-weight="bold" fill="#fff" text-anchor="middle" font-family="sans-serif">夏だ！横丁ビール</text>
+          <text x="104" y="140" font-size="5" fill="#fff" text-anchor="middle" font-family="sans-serif">お酒は20歳になってから</text>
+        </svg>
+        </div>
       </div>
       <div class="harigami" aria-hidden="true">冷やし中華<br>はじめました</div>
     </div>
@@ -124,11 +211,11 @@
 </div>
 <!-- three.js（MIT License）を同梱。アプリはオフラインで遊べる -->
 <script src="vendor/three.min.js"></script>
-<script src="build-info.js?v=20261106021353"></script>
-<script src="ads-config.js?v=20261106021353"></script>
-<script src="ads.js?v=20261106021353"></script>
-<script src="bowl3d.js?v=20261106021353"></script>
-<script src="bgm.js?v=20261106021353"></script>
-<script src="game.js?v=20261106021353"></script>
+<script src="build-info.js?v=20261106021720"></script>
+<script src="ads-config.js?v=20261106021720"></script>
+<script src="ads.js?v=20261106021720"></script>
+<script src="bowl3d.js?v=20261106021720"></script>
+<script src="bgm.js?v=20261106021720"></script>
+<script src="game.js?v=20261106021720"></script>
 </body>
 </html>

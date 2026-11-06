@@ -1054,3 +1054,14 @@ html, body { overflow-x: hidden; max-width: 100%; }
 #seats { z-index: 3 !important; }
 .seat .glass, .seat .glass[style] { bottom: -16px !important; }
 @media (max-width: 640px) { .seat .glass { bottom: -15px !important; } }
+
+/* ポスター 3 枚を並べて貼る（メニューと貼り紙のあいだ） */
+.posters {
+  position: absolute; left: 39%; right: 21%; top: 8px; display: flex; justify-content: space-evenly; align-items: flex-start;
+  transform: scale(var(--wall-scale, 1)); transform-origin: 50% 0;
+}
+.posters .beer-poster { position: relative; left: auto; top: auto; transform: none; width: 30%; max-width: 84px; height: auto; aspect-ratio: 120 / 170; }
+.posters .p1 { transform: rotate(-2deg); }
+.posters .p2 { transform: rotate(1.5deg); margin-top: 4px; }
+.posters .p3 { transform: rotate(-1deg); margin-top: 1px; }
+@media (min-width: 641px) { .posters { left: 52%; right: 26%; } }
