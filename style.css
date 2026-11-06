@@ -1050,3 +1050,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .seat .glass { bottom: -4px !important; }
 .seat .glass::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: -2px; height: 3px; border-radius: 50%; background: rgba(0,0,0,.28); filter: blur(1px); }
 @media (max-width: 640px) { .seat .glass { bottom: -4px !important; } }
+/* コップはカウンターのふちより手前（天板の上）に置く */
+#seats { z-index: 3 !important; }
+.seat .glass, .seat .glass[style] { bottom: -16px !important; }
+@media (max-width: 640px) { .seat .glass { bottom: -15px !important; } }
