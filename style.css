@@ -1065,3 +1065,5 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .posters .p2 { transform: rotate(1.5deg); margin-top: 4px; }
 .posters .p3 { transform: rotate(-1deg); margin-top: 1px; }
 @media (min-width: 641px) { .posters { left: 52%; right: 26%; } }
+/* お客さんに出したラーメン（3D）を、お客さんより手前に描く */
+.counter3d { z-index: 5 !important; }
