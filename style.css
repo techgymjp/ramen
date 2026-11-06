@@ -955,3 +955,10 @@ html, body { overflow-x: hidden; max-width: 100%; }
 #counter { z-index: 2; }
 @media (max-width: 640px) { #queue .q-body { height: calc(60px * 0.62 + 10px); } }
 
+/* 行列の人を少し上に立たせる */
+#queue { bottom: calc(30px + 80px * 0.62 + 14px) !important; }
+#queue .q-body { height: calc(80px * 0.62 + 26px) !important; }
+@media (max-width: 640px) {
+  #queue { bottom: calc(30px + 60px * 0.62 + 10px) !important; }
+  #queue .q-body { height: calc(60px * 0.62 + 20px) !important; }
+}
