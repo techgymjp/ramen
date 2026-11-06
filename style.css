@@ -1041,3 +1041,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 .beer-poster svg { display: block; width: 100%; height: 100%; }
 @media (min-width: 641px) { .beer-poster { width: 84px; height: 119px; left: 50%; } }
+/* お客さんのコップ：カウンターの上にしっかり見えるよう、上げて少し大きく */
+.seat .glass { bottom: 2px !important; width: 20px !important; height: 29px !important; z-index: 4 !important; box-shadow: 0 2px 3px rgba(0,0,0,.3), inset 0 -3px 0 #ffffff66 !important; }
+@media (max-width: 640px) {
+  .seat .glass { bottom: 2px !important; width: 16px !important; height: 23px !important; left: calc(50% - 36px) !important; }
+}

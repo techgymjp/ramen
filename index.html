@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>行列のできるラーメン店</title>
-<link rel="stylesheet" href="style.css?v=20261106020325">
+<link rel="stylesheet" href="style.css?v=20261106020845">
 </head>
 <body>
 <div id="game">
@@ -44,34 +44,38 @@
           <path d="M0 120 L120 112 L120 170 L0 170Z" fill="#f3f1ea"/>
           <path d="M0 120 L120 112" stroke="#c9d6dc" stroke-width="2"/>
           <g stroke="#dcdcd4" stroke-width=".8"><path d="M0 138 L120 132 M0 156 L120 151 M30 118 L28 170 M60 116 L60 170 M90 114 L92 170"/></g>
-          <!-- 髪（うしろ） -->
-          <path d="M30 46 Q26 18 50 14 Q74 14 72 42 Q76 68 66 80 L36 80 Q26 66 30 46Z" fill="#2a1a10"/>
-          <!-- 脚（プールサイドに横すわり） -->
-          <path d="M44 118 Q70 112 98 124 Q104 128 100 132 Q74 128 48 134Z" fill="url(#bpSkin)"/>
-          <path d="M46 126 Q72 126 94 140 Q98 144 93 146 Q70 138 46 138Z" fill="url(#bpSkin)"/>
-          <!-- 体 -->
-          <path d="M38 84 Q40 72 52 70 Q64 72 66 84 L68 118 Q54 126 38 120Z" fill="url(#bpSkin)"/>
-          <path d="M44 66 L60 66 L58 74 L46 74Z" fill="url(#bpSkin)"/>
+          <!-- 髪（うしろ・肩までのボブ） -->
+          <path d="M33 40 Q31 16 52 14 Q72 15 71 40 Q73 58 66 66 L38 66 Q31 56 33 40Z" fill="#2a1a10"/>
+          <!-- 体（プールのふちに座って、こちらを向く） -->
+          <path d="M44 60 L60 60 L59 68 L45 68Z" fill="url(#bpSkin)"/>
+          <path d="M36 80 Q37 68 52 66 Q67 68 68 80 L68 112 Q66 124 52 126 Q38 124 36 112Z" fill="url(#bpSkin)"/>
           <!-- 青いビキニ -->
-          <path d="M40 86 Q46 82 51 88 Q56 82 64 86 Q63 94 58 95 Q53 96 51 92 Q49 96 44 95 Q39 94 40 86Z" fill="#1f4fc0"/>
-          <path d="M44 84 L46 74 M60 84 L58 74" stroke="#1f4fc0" stroke-width="1.3"/>
-          <path d="M39 112 Q53 118 67 112 L66 120 Q53 126 40 120Z" fill="#1f4fc0"/>
-          <!-- 腕（ジョッキを掲げる） -->
-          <path d="M40 90 Q28 92 24 78" stroke="#f0c39e" stroke-width="6.5" fill="none" stroke-linecap="round"/>
-          <path d="M65 92 Q74 104 70 114" stroke="#f0c39e" stroke-width="6" fill="none" stroke-linecap="round"/>
-          <!-- ジョッキ -->
-          <rect x="10" y="52" width="22" height="28" rx="3" fill="url(#bpBeer)" stroke="#fff" stroke-width="1.2"/>
-          <path d="M10 58 q-8 0 -8 9 t8 9" stroke="#fff" stroke-width="2.6" fill="none"/>
-          <path d="M8 54 q3 -8 9 -5 q4 -6 10 -1 q6 -2 6 5 Z" fill="#fffdf3"/>
-          <g fill="#fff" opacity=".7"><circle cx="16" cy="68" r="1.2"/><circle cx="23" cy="74" r="1"/><circle cx="26" cy="63" r="1.1"/></g>
-          <!-- 顔 -->
-          <ellipse cx="52" cy="46" rx="15" ry="17" fill="#f6cfac"/>
-          <path d="M37 44 Q38 24 52 24 Q67 24 67 44 Q62 32 52 34 Q42 32 37 44Z" fill="#2a1a10"/>
-          <path d="M37 44 Q34 58 40 66" stroke="#2a1a10" stroke-width="4" fill="none"/>
-          <path d="M45 46 q3 -3 6 0 M54 46 q3 -3 6 0" stroke="#2a1a10" stroke-width="1.5" fill="none" stroke-linecap="round"/>
-          <ellipse cx="44" cy="52" rx="2.6" ry="1.6" fill="#ff8a8a" opacity=".5"/><ellipse cx="61" cy="52" rx="2.6" ry="1.6" fill="#ff8a8a" opacity=".5"/>
-          <path d="M48 55 Q52 60 57 55" stroke="#b3261e" stroke-width="1.6" fill="#fff" stroke-linejoin="round"/>
-          <circle cx="66" cy="34" r="2.6" fill="#fff"/><circle cx="68" cy="31" r="1.6" fill="#ffd0e0"/>
+          <path d="M38 80 Q44 75 51 81 Q58 75 66 80 Q66 89 59 91 Q53 92 51 87 Q49 92 44 91 Q38 89 38 80Z" fill="#1f4fc0"/>
+          <path d="M43 78 L45 68 M61 78 L59 68" stroke="#1f4fc0" stroke-width="1.3"/>
+          <path d="M38 114 Q52 120 67 114 L66 123 Q52 128 39 123Z" fill="#1f4fc0"/>
+          <!-- 脚：ひざを右にそろえて立て、すねはプールサイドへ -->
+          <path d="M44 118 Q70 108 96 106 Q103 107 102 114 Q76 122 52 130Z" fill="url(#bpSkin)"/>
+          <path d="M94 106 Q101 104 103 112 L98 150 Q92 152 89 148Z" fill="url(#bpSkin)"/>
+          <path d="M50 124 Q72 120 88 124 Q91 129 86 131 L54 134Z" fill="#e2ab84"/>
+          <path d="M84 124 Q90 122 92 128 L88 154 Q83 156 81 152Z" fill="#e2ab84"/>
+          <ellipse cx="94" cy="153" rx="6" ry="2.4" fill="#e9b68f"/><ellipse cx="85" cy="156" rx="5" ry="2.2" fill="#d99f78"/>
+          <!-- 左手はひざの上に -->
+          <path d="M66 84 Q78 94 92 104" stroke="#f0c39e" stroke-width="6" fill="none" stroke-linecap="round"/>
+          <!-- 右手でジョッキを顔の横に掲げる -->
+          <path d="M38 86 Q28 84 26 70" stroke="#f0c39e" stroke-width="6.5" fill="none" stroke-linecap="round"/>
+          <rect x="12" y="44" width="22" height="28" rx="3" fill="url(#bpBeer)" stroke="#fff" stroke-width="1.2"/>
+          <path d="M12 50 q-8 0 -8 9 t8 9" stroke="#fff" stroke-width="2.6" fill="none"/>
+          <path d="M10 46 q3 -8 9 -5 q4 -6 10 -1 q6 -2 6 5 Z" fill="#fffdf3"/>
+          <g fill="#fff" opacity=".7"><circle cx="18" cy="60" r="1.2"/><circle cx="25" cy="66" r="1"/><circle cx="28" cy="55" r="1.1"/></g>
+          <!-- 顔（少しかしげて、にっこり） -->
+          <g transform="rotate(-6 52 40)">
+            <ellipse cx="52" cy="40" rx="14" ry="16" fill="#f6cfac"/>
+            <path d="M38 38 Q39 20 52 19 Q66 20 67 38 Q62 27 52 29 Q42 27 38 38Z" fill="#2a1a10"/>
+            <path d="M45 40 q3 -3 6 0 M54 40 q3 -3 6 0" stroke="#2a1a10" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <ellipse cx="44" cy="46" rx="2.6" ry="1.6" fill="#ff8a8a" opacity=".5"/><ellipse cx="61" cy="46" rx="2.6" ry="1.6" fill="#ff8a8a" opacity=".5"/>
+            <path d="M48 49 Q52 54 57 49" stroke="#b3261e" stroke-width="1.6" fill="#fff" stroke-linejoin="round"/>
+            <circle cx="66" cy="30" r="2.6" fill="#fff"/><circle cx="68" cy="27" r="1.6" fill="#ffd0e0"/>
+          </g>
           <!-- キャッチコピー（縦書きの黒い帯） -->
           <rect x="94" y="6" width="22" height="78" fill="#111"/>
           <g font-size="12" font-weight="bold" fill="#fff" font-family="sans-serif" text-anchor="middle">
@@ -120,11 +124,11 @@
 </div>
 <!-- three.js（MIT License）を同梱。アプリはオフラインで遊べる -->
 <script src="vendor/three.min.js"></script>
-<script src="build-info.js?v=20261106020325"></script>
-<script src="ads-config.js?v=20261106020325"></script>
-<script src="ads.js?v=20261106020325"></script>
-<script src="bowl3d.js?v=20261106020325"></script>
-<script src="bgm.js?v=20261106020325"></script>
-<script src="game.js?v=20261106020325"></script>
+<script src="build-info.js?v=20261106020845"></script>
+<script src="ads-config.js?v=20261106020845"></script>
+<script src="ads.js?v=20261106020845"></script>
+<script src="bowl3d.js?v=20261106020845"></script>
+<script src="bgm.js?v=20261106020845"></script>
+<script src="game.js?v=20261106020845"></script>
 </body>
 </html>
