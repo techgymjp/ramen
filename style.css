@@ -1032,3 +1032,12 @@ html, body { overflow-x: hidden; max-width: 100%; }
 }
 @keyframes recallIn { from { transform: translate(-50%, -8px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
 @media (max-width: 640px) { #recallBtn { font-size: 13px; padding: 8px 14px; } }
+
+/* 壁のビールのポスター（メニューと貼り紙のあいだ） */
+.beer-poster {
+  position: absolute; left: 52%; top: 8px; width: 60px; height: 85px;
+  transform: translateX(-50%) rotate(-1.5deg) scale(var(--wall-scale, 1)); transform-origin: 50% 0;
+  box-shadow: 1px 3px 4px rgba(0,0,0,.3); border: 2px solid #fff; background: #fff;
+}
+.beer-poster svg { display: block; width: 100%; height: 100%; }
+@media (min-width: 641px) { .beer-poster { width: 84px; height: 119px; left: 50%; } }

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>行列のできるラーメン店</title>
-<link rel="stylesheet" href="style.css?v=20261106014915">
+<link rel="stylesheet" href="style.css?v=20261106020029">
 </head>
 <body>
 <div id="game">
@@ -27,6 +27,48 @@
       <div id="menulist"></div>
       <div class="wall-clock" aria-hidden="true"><div class="hand h"></div><div class="hand m"></div></div>
       <div class="himekuri" aria-hidden="true"><div class="hm-top">昭和</div><div class="hm-day">5</div><div class="hm-week">土曜日</div></div>
+      <!-- 昭和のビールのポスター（オリジナルのイラスト。実在の銘柄は出さない） -->
+      <div class="beer-poster" aria-hidden="true">
+        <svg viewBox="0 0 120 170" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bpSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2f8fd8"/><stop offset=".62" stop-color="#9fd8f5"/><stop offset=".62" stop-color="#f3dfa8"/><stop offset="1" stop-color="#e9c97f"/></linearGradient>
+            <linearGradient id="bpBeer" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#d98a14"/><stop offset=".45" stop-color="#ffc63a"/><stop offset="1" stop-color="#c97a10"/></linearGradient>
+          </defs>
+          <rect width="120" height="170" fill="url(#bpSky)"/>
+          <circle cx="98" cy="22" r="11" fill="#fff4b8" opacity=".9"/>
+          <path d="M0 102 Q30 96 60 102 T120 100 V106 H0Z" fill="#fff" opacity=".7"/>
+          <!-- 髪（うしろ） -->
+          <path d="M37 52 Q34 24 58 20 Q84 20 82 50 Q86 78 74 86 L42 86 Q32 74 37 52Z" fill="#3a2414"/>
+          <!-- 体 -->
+          <path d="M50 74 Q60 79 70 74 L72 84 L48 84Z" fill="#f6d2b3"/>
+          <path d="M40 96 Q43 84 52 82 L68 82 Q77 84 80 96 L82 140 Q60 146 38 140Z" fill="#f6d2b3"/>
+          <!-- 水着（赤いワンピース、白い水玉） -->
+          <path d="M45 92 Q52 98 60 92 Q68 98 75 92 L78 138 Q60 144 42 138Z" fill="#e0302a"/>
+          <g fill="#fff" opacity=".85"><circle cx="52" cy="108" r="2"/><circle cx="66" cy="104" r="2"/><circle cx="58" cy="120" r="2"/><circle cx="71" cy="124" r="2"/><circle cx="49" cy="130" r="2"/></g>
+          <path d="M48 84 L45 92 M72 84 L75 92" stroke="#e0302a" stroke-width="2.4"/>
+          <!-- 脚 -->
+          <path d="M44 138 L46 170 L58 170 L59 141Z M61 141 L62 170 L74 170 L76 138Z" fill="#f6d2b3"/>
+          <!-- 顔 -->
+          <ellipse cx="60" cy="52" rx="17" ry="19" fill="#f6d2b3"/>
+          <path d="M43 50 Q44 30 60 30 Q77 30 77 50 Q70 38 60 40 Q50 38 43 50Z" fill="#3a2414"/>
+          <path d="M52 52 q3 -3 6 0 M62 52 q3 -3 6 0" stroke="#2a1a10" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+          <ellipse cx="51" cy="59" rx="3" ry="1.8" fill="#ff8a8a" opacity=".55"/><ellipse cx="69" cy="59" rx="3" ry="1.8" fill="#ff8a8a" opacity=".55"/>
+          <path d="M55 61 Q60 66 65 61" stroke="#b3261e" stroke-width="1.8" fill="#fff" stroke-linejoin="round"/>
+          <circle cx="44" cy="58" r="2.2" fill="#fff4b8"/>
+          <!-- 腕とジョッキ -->
+          <path d="M78 96 Q90 92 92 80" stroke="#f6d2b3" stroke-width="7" fill="none" stroke-linecap="round"/>
+          <rect x="86" y="58" width="22" height="30" rx="3" fill="url(#bpBeer)" stroke="#fff" stroke-width="1.2" opacity=".95"/>
+          <path d="M108 64 q8 0 8 9 t-8 9" stroke="#fff" stroke-width="2.6" fill="none"/>
+          <path d="M84 60 q3 -8 9 -5 q4 -6 10 -1 q6 -2 6 5 Z" fill="#fffdf3"/>
+          <g fill="#fff" opacity=".7"><circle cx="92" cy="74" r="1.2"/><circle cx="98" cy="80" r="1"/><circle cx="101" cy="69" r="1.1"/></g>
+          <!-- 文字 -->
+          <g font-size="13" font-weight="bold" fill="#fff" stroke="#b3261e" stroke-width=".7" font-family="sans-serif" text-anchor="middle">
+            <text x="16" y="22">生</text><text x="16" y="37">ビ</text><text x="16" y="50" transform="rotate(90 16 46)">ー</text><text x="16" y="64">ル</text>
+          </g>
+          <rect x="0" y="152" width="120" height="18" fill="#b3261e"/>
+          <text x="60" y="165" font-size="11" font-weight="bold" fill="#fff" text-anchor="middle" font-family="sans-serif">冷えてます！</text>
+        </svg>
+      </div>
       <div class="harigami" aria-hidden="true">冷やし中華<br>はじめました</div>
     </div>
     <div id="entrance">
@@ -62,11 +104,11 @@
 </div>
 <!-- three.js（MIT License）を同梱。アプリはオフラインで遊べる -->
 <script src="vendor/three.min.js"></script>
-<script src="build-info.js?v=20261106014915"></script>
-<script src="ads-config.js?v=20261106014915"></script>
-<script src="ads.js?v=20261106014915"></script>
-<script src="bowl3d.js?v=20261106014915"></script>
-<script src="bgm.js?v=20261106014915"></script>
-<script src="game.js?v=20261106014915"></script>
+<script src="build-info.js?v=20261106020029"></script>
+<script src="ads-config.js?v=20261106020029"></script>
+<script src="ads.js?v=20261106020029"></script>
+<script src="bowl3d.js?v=20261106020029"></script>
+<script src="bgm.js?v=20261106020029"></script>
+<script src="game.js?v=20261106020029"></script>
 </body>
 </html>
