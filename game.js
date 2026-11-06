@@ -90,6 +90,7 @@ function applyStaticText() {
 // ===================== 設定 =====================
 const DAY_LEN = 180;          // 営業時間（実時間・秒）
 const SEAT_COUNT = 6;          // カウンター6席（どんぶりも3列×2行）
+const SHARE_URL = 'https://techgym.jp/column/claude-code-game-ramen/';
 const CUP_COUNT = 3;            // トレーに並べるコップの数（見た目）
 const POT_CAP = 6;            // 麺茹で機のてぼ（麺かご）の数
 const BOIL_TIME = 6;          // 茹で上がりまでの秒数（ピピッと鳴る）
@@ -1502,10 +1503,11 @@ function startGame() {
 }
 
 function rank(rep, money) {
-  if (rep >= 4.5 && money >= 50000) return T('rank.legend');
-  if (rep >= 4 && money >= 35000) return T('rank.magazine');
-  if (rep >= 3 && money >= 20000) return T('rank.local');
-  if (money >= 10000) return T('rank.normal');
+  // 基準はシミュレーション結果から（上手 ≒ 7万円・★5、ふつう ≒ 3.4万円・★4.6、下手 ≒ 1.1万円・★1）
+  if (rep >= 4.8 && money >= 68000) return T('rank.legend');
+  if (rep >= 4.5 && money >= 50000) return T('rank.magazine');
+  if (rep >= 4 && money >= 30000) return T('rank.local');
+  if (money >= 15000) return T('rank.normal');
   return T('rank.trainee');
 }
 
@@ -1547,7 +1549,7 @@ function endGame() {
   $('topBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
   // シェア：スマホは共有メニュー、使えないときは文章をコピー。X には直接ポストもできる
-  const url = location.href.split('?')[0].split('#')[0];
+  const url = SHARE_URL;   // シェアするページ（ゲームの紹介記事）
   const text = LANG === 'en'
     ? `🍜 ${T('行列のできるラーメン店')}\n${rank(S.rep, S.money)}\nProfit ${yen(S.money)} · ${S.served} bowls (fast & tasty: ${S.perfect})\nRating ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`
     : `🍜 行列のできるラーメン店\n${rank(S.rep, S.money)}\n利益 ${yen(S.money)}・${S.served}杯（早くておいしい！ ${S.perfect}杯）\n評判 ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`;
