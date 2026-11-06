@@ -752,7 +752,7 @@ function takeReadyNoodle() {
 // トッピング：什器から具が飛び出して、選択中のどんぶりへ飛んでいく
 // ワンタップで、そのどんぶりのお客さんの注文どおりの量がのる。
 // 1タップで1人前（チャーシューなら数枚、ネギならひとつかみ）がのる。
-// 同じ具を2回のせると「のせすぎ」でゴミになる
+// 同じ具は1杯に1回だけ（2回目のタップは無視する）
 const PIECES = { chashu: 4, negi: 6 };   // 1人前で飛んでいく個数（見た目）
 
 function addTopping(key) {
@@ -761,13 +761,9 @@ function addTopping(key) {
   if (b.serving) return;   // お客さんへ飛んでいく途中のどんぶりには、もうのせない
   if (!b.men) { toast(T('先に麺をどんぶりに入れよう')); return; }
   const name = TOPPINGS.find((t) => t.key === key).name;
+  // 同じ具はもうのっていれば、2回目はのせない（連打してもゴミにならない）
+  if (b.tops[key] > 0) { toast(LANG === 'en' ? `${T(name)} is already on` : `${name}はもうのっています`); return; }
   sfx.tap();
-  if (b.tops[key] > 0) {
-    flyTopping(key, b, S.active, 0, false);
-    S.bowls[S.active] = newBowl();
-    throwAway(LANG === 'en' ? T('のせすぎ', T(name)) : `${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
-    return;
-  }
   b.tops[key] = 1;
   b.fly[key] = 1;   // 全部着地するまでは描かない
   const n = PIECES[key];
@@ -1621,7 +1617,7 @@ function showHelp() {
     <h2>Things that get wasted</h2>
     <ul>
       <li><b>Overcooked noodles</b> left in the boiler after the beep</li>
-      <li>Ramen with the same topping added twice, or the <b>wrong order</b></li>
+      <li>Ramen with a <b>topping that wasn't ordered</b> (e.g. chashu on Negi Ramen)</li>
       <li>Ramen whose customer left before it was served</li>
     </ul>
     <p style="font-size:12px;color:#666">Keys: M music / G water / Q add noodles / W take noodles out / A chashu / S negi / 1–6 refill the empty glass at seat 1–6</p>
@@ -1648,7 +1644,7 @@ function showHelp() {
     <h2>ゴミになるもの</h2>
     <ul>
       <li>ピピッの後に放っておいた<b>茹ですぎの麺</b></li>
-      <li>同じトッピングを2回のせたラーメン、<b>注文とちがうラーメン</b></li>
+      <li><b>注文にないトッピング</b>をのせたラーメン（例：ネギラーメンにチャーシュー）</li>
       <li>麺を入れたまま、お客さんが帰ってしまったラーメン</li>
     </ul>
     <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6の空のコップに水</p>
