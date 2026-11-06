@@ -1145,6 +1145,6 @@ const Bowl3D = (() => {
     return kitchen.pieceScreenPos(slot, key, index, el);
   }
 
-  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos, person, personCount: PEOPLE.length, ramenImage, bowlImage };
+  const api = { ok: false, images: null, init, draw, drawCounter, pieceScreenPos, person, personCount: PEOPLE.length, personShirt: (i) => '#' + PEOPLE[i % PEOPLE.length].shirt.toString(16).padStart(6, '0'), ramenImage, bowlImage };
   return api;
 })();

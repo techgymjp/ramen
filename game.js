@@ -1319,14 +1319,30 @@ function render() {
   const qEl = $('queue');
   if (qEl.dataset.key !== qKey) {
     qEl.dataset.key = qKey;
-    const shown = S.queue.slice(0, window.innerWidth <= 640 ? 9 : 16);
-    qEl.innerHTML = shown.map((c) => {
+    // 座っているお客さんと同じ大きさで、カウンターのすぐ後ろに立って並ぶ。
+    // 並び方は人ごとに少しずつ、間隔・前後・高さ・向きをばらけさせる（同じ人はいつも同じずれ方）
+    const phone = window.innerWidth <= 640;
+    const W = $('shop').getBoundingClientRect().width;
+    const pw = phone ? 48 : 64;                       // 1人の幅（座っている人と同じ）
+    const rnd = (id, k) => { const x = Math.sin(id * 12.9898 + k * 78.233) * 43758.5453; return x - Math.floor(x); };
+    let x = phone ? 2 : 10;
+    const html = [];
+    let hidden = 0;
+    S.queue.forEach((c, n) => {
+      const step = pw * (0.55 + rnd(c.id, 1) * 0.5);  // 詰めて並ぶ人、少し離れる人
+      if (x + pw > W - 4) { hidden++; return; }
       const imp = c.qWait > c.qMax * 0.7;
+      const dy = Math.round((rnd(c.id, 2) - 0.5) * 14);            // 前後（上下）のずれ
+      const sc = (0.94 + rnd(c.id, 3) * 0.1).toFixed(3);           // 背の高さの違い
+      const flip = rnd(c.id, 4) < 0.35 ? -1 : 1;                   // たまに逆を向く
+      const tilt = ((rnd(c.id, 5) - 0.5) * 6).toFixed(1);           // 少しかしげる
       const face = Bowl3D.ok ? `<img class="q3d" src="${Bowl3D.person(c.look, imp ? 'wait' : 'normal')}" alt="">` : c.face;
-      // 並んだ人が少しずつ上下にずれて見えるように
-      return `<span class="q-person${imp ? ' impatient' : ''}">${face}</span>`;
-    }).join('') +
-      (S.queue.length > shown.length ? `<span class="q-more">${T('ほか{0}人', S.queue.length - shown.length)}</span>` : '');
+      // 胸から下（座っている人やカウンターの陰になる部分）も体を伸ばして、立っているように見せる
+      const shirt = Bowl3D.ok && Bowl3D.personShirt ? Bowl3D.personShirt(c.look) : '#888';
+      html.push(`<span class="q-person${imp ? ' impatient' : ''}" style="left:${Math.round(x)}px;bottom:${dy}px;z-index:${50 - n};transform:scale(${flip * sc},${sc}) rotate(${tilt}deg);--shirt:${shirt}">${face}<i class="q-body"></i></span>`);
+      x += step;
+    });
+    qEl.innerHTML = html.join('') + (hidden ? `<span class="q-more">${T('ほか{0}人', hidden)}</span>` : '');
   }
 
   // 席
