@@ -911,3 +911,19 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .panel .btn.share:hover { background: #1a8cd8; }
 .panel .btn.share.x { background: #111; }
 .panel .btn.share.x:hover { background: #333; }
+
+/* 英語表示 */
+.lang-switch { display: flex; justify-content: center; gap: 6px; margin: 2px 0 2px; }
+.lang-btn { font: inherit; font-size: 12px; font-weight: bold; padding: 2px 12px; border-radius: 12px; border: 1px solid #8a5a2b; background: #fff; color: #8a5a2b; cursor: pointer; }
+.lang-btn.on { background: #8a5a2b; color: #fff; }
+.lang-en .top-title span { letter-spacing: 1px; font-size: 32px; }
+.lang-en .t-name { letter-spacing: 0 !important; font-family: "Georgia", serif; }
+.lang-en .slip .nm { letter-spacing: 0; }
+.lang-en .bubble .ord-txt { font-size: 13px; }
+@media (max-width: 640px) {
+  .lang-en .ord-txt { font-size: 10px !important; }
+  .lang-en #hud { font-size: 11px; }
+}
+.lang-en .tanzaku { flex-direction: column !important; align-items: center !important; }
+.lang-en .t-price { width: auto !important; writing-mode: horizontal-tb; white-space: nowrap; font-size: 9px !important; margin-top: 2px; word-break: normal; }
+.lang-en .t-name { align-self: center !important; }

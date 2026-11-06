@@ -1,5 +1,92 @@
 'use strict';
 
+// ===================== 言語（日本語 / English） =====================
+// ?lang=en / ?lang=ja、前回選んだ言語、端末の言語の順で決める
+let LANG = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get('lang');
+    if (q === 'en' || q === 'ja') return q;
+    const s = localStorage.getItem('ramen-lang');
+    if (s === 'en' || s === 'ja') return s;
+  } catch (e) { /* 読めなくても続行 */ }
+  return /^ja/i.test(navigator.language || 'ja') ? 'ja' : 'en';
+})();
+const EN = {
+  'ラーメン': 'Ramen', 'チャーシューメン': 'Chashu Ramen', 'ネギラーメン': 'Negi Ramen', 'ネギチャーシューメン': 'Negi Chashu Ramen',
+  'チャーシュー': 'Chashu', 'ネギ': 'Negi',
+  'slip.ramen': 'Ramen', 'slip.chashumen': 'Chashu', 'slip.negiramen': 'Negi', 'slip.negichashu': 'Negi+Cha',
+  'お水が必要なお客さんはいません': 'No one needs water right now',
+  'まだお水が入っています': 'Their glass still has water',
+  'てぼが全部ふさがっています': 'All the baskets are in use',
+  'まだ茹でています… ピピッと鳴るまで待とう': 'Still boiling… wait for the beep',
+  'スープが入っていないと麺を入れられません。どんぶりをタップしてスープを入れよう': 'Add soup first — tap a bowl to pour it',
+  'スープの入った空のどんぶりがありません': 'No bowl with soup is ready for noodles',
+  '茹で上がった麺がありません': 'No noodles are ready yet',
+  'どんぶりがありません': 'No bowl to put it in',
+  '先に麺をどんぶりに入れよう': 'Put noodles in the bowl first',
+  'のせすぎ': '{0}: too much! The ramen is wasted',
+  'このお客さんのラーメンはまだできていません': "This customer's ramen isn't ready yet",
+  '注文とちがう！ラーメンはゴミに': 'Wrong order! The ramen is wasted',
+  'ちがうよ！😠': 'Wrong! 😠', '熱っ！お水💧': 'Hot! Water 💧',
+  'お水はもう出しています': 'They already have water',
+  'うまい！早い！😋': 'Fast & tasty! 😋', 'うまい🙂': 'Tasty 🙂', '待たされた…😐': 'Took a while… 😐',
+  '（チップ込）': ' (incl. tip)',
+  '行列からお客さんが帰ってしまった…': 'Someone gave up waiting in line…',
+  'お水おかわり！💧': 'More water! 💧',
+  '食べずに帰ってしまった…ラーメンはゴミに': 'They left without eating… ramen wasted',
+  'お客さんが帰ってしまった…ラーメンはゴミに': 'The customer left… ramen wasted',
+  'もう帰る！💢': "I'm leaving! 💢",
+  '茹ですぎ！麺はゴミに': 'Overcooked! Noodles wasted',
+  'そのまま': 'plain', 'を1タップ': ': tap once',
+  'ピピッ！': 'Beep!', 'チャッチャッ！': 'Shake!', 'お冷': 'Water',
+  'ほか{0}人': '+{0} more', '{0}番': '#{0}',
+  'rank.legend': '🏆 Legendary ramen shop', 'rank.magazine': '🥇 Featured in magazines', 'rank.local': '🥈 Local favorite',
+  'rank.normal': '🥉 Ordinary ramen shop', 'rank.trainee': '🍥 Apprentice cook',
+  '{0}杯': '{0} bowls', '{0}人': '{0}', '{0}個': '{0}',
+  '本日の営業終了': "Today's shift is over", '利益': 'Profit', '🎉 新記録！': '🎉 New record!',
+  '提供数': 'Served', '早くておいしい！': 'fast & tasty:', '怒って帰った客': 'Left angry', '行列をあきらめた客': 'Gave up in line',
+  'ゴミ': 'Wasted', '廃棄ロス': 'loss', '評判': 'Rating', '最高利益': 'Best profit', 'メニュー別': 'By menu',
+  '📣 結果をシェア': '📣 Share result', '𝕏 でポスト': 'Post on 𝕏', 'トップへ': 'Title', 'もう一度営業する': 'Play again',
+  '行列のできるラーメン店': 'The Ramen Shop with a Line',
+  '結果をコピーしました。SNSに貼り付けてシェアしてね': 'Result copied — paste it to share!',
+  'top.small': 'The ramen shop', 'top.big': 'with a Line',
+  'top.lead': 'Make ramen exactly as ordered and serve the line!',
+  '開店！': 'Open shop!', '遊び方': 'How to play', 'もどる': 'Back', '行列': 'Line',
+  '冷やし中華はじめました': 'Cold noodles<br>now served',
+};
+// 日本語の文をそのまま鍵にして英語に訳す（{0} などは引数で埋める）
+function T(key, ...args) {
+  let s = LANG === 'en' && EN[key] != null ? EN[key] : key;
+  if (LANG === 'ja' && /^(slip|rank|top)\./.test(key)) s = JA_ONLY[key];
+  args.forEach((v, k) => { s = s.split('{' + k + '}').join(v); });
+  return s;
+}
+const JA_ONLY = {
+  'slip.ramen': 'ラーメン', 'slip.chashumen': 'チャ', 'slip.negiramen': 'ネギ', 'slip.negichashu': 'ネギチャ',
+  'rank.legend': '🏆 伝説の行列店', 'rank.magazine': '🥇 雑誌に載る人気店', 'rank.local': '🥈 地元で評判の店',
+  'rank.normal': '🥉 ふつうのラーメン屋', 'rank.trainee': '🍥 修行中の見習い',
+  'top.small': '行列のできる', 'top.big': 'ラーメン店', 'top.lead': '注文どおりにラーメンを作って、行列をさばこう！',
+};
+function setLang(l) {
+  LANG = l;
+  try { localStorage.setItem('ramen-lang', l); } catch (e) { /* 保存できなくても続行 */ }
+  applyStaticText();
+}
+// HTML に直接書いてある文字を切りかえる
+function applyStaticText() {
+  document.documentElement.lang = LANG;
+  document.title = T('行列のできるラーメン店');
+  const set = (sel, html) => { const el = document.querySelector(sel); if (el) el.innerHTML = html; };
+  set('#lblRep', T('評判'));
+  set('#lblLine', T('行列'));
+  set('#lblPpl', LANG === 'en' ? '' : '人');
+  set('#lblTrash', T('ゴミ'));
+  set('.harigami', T('冷やし中華はじめました').replace('冷やし中華はじめました', '冷やし中華<br>はじめました'));
+  const ml = document.getElementById('menulist');
+  if (ml && typeof buildMenuBoard === 'function') buildMenuBoard();
+  document.body.classList.toggle('lang-en', LANG === 'en');
+}
+
 // ===================== 設定 =====================
 const DAY_LEN = 180;          // 営業時間（実時間・秒）
 const SEAT_COUNT = 6;          // カウンター6席（どんぶりも3列×2行）
@@ -547,7 +634,7 @@ function pickWater() {
     const score = (c.state === 'hot' ? 3000 : !c.glass ? 2000 : 1000) + c.pat;
     if (score > bestScore) { bestScore = score; best = i; }
   });
-  if (best < 0) { toast('お水が必要なお客さんはいません'); return; }
+  if (best < 0) { toast(T('お水が必要なお客さんはいません')); return; }
   giveWater(S.seats[best]);
 }
 
@@ -555,7 +642,7 @@ function pickWater() {
 function tapGlass(i) {
   const c = S.seats[i];
   if (!c) return;
-  if (c.water) { toast('まだお水が入っています'); return; }
+  if (c.water) { toast(T('まだお水が入っています')); return; }
   giveWater(c);
 }
 
@@ -587,7 +674,7 @@ function fixActive() {
 // 麺を入れる（場所の指定がなければ空いているてぼへ）
 function addNoodle(at) {
   const i = at !== undefined ? at : S.pot.indexOf(null);
-  if (i < 0) { toast('てぼが全部ふさがっています'); return; }
+  if (i < 0) { toast(T('てぼが全部ふさがっています')); return; }
   S.pot[i] = { t: 0, beeped: false };
   sfx.chapon();
 }
@@ -596,14 +683,14 @@ function addNoodle(at) {
 function takeNoodle(i) {
   const n = S.pot[i];
   if (!n) { addNoodle(i); return; }
-  if (n.t < BOIL_TIME) { toast('まだ茹でています… ピピッと鳴るまで待とう'); return; }
+  if (n.t < BOIL_TIME) { toast(T('まだ茹でています… ピピッと鳴るまで待とう')); return; }
   // 入れ先：選択中のどんぶり → だめなら、スープが入っていて麺がまだのどんぶり
   const ok = (b) => b && b.soup && !b.men;
   const target = ok(activeBowl()) ? S.active : S.bowls.findIndex(ok);
   if (target < 0) {
     const a = activeBowl();
-    if (a && !a.soup) toast('スープが入っていないと麺を入れられません。どんぶりをタップしてスープを入れよう');
-    else toast('スープの入った空のどんぶりがありません');
+    if (a && !a.soup) toast(T('スープが入っていないと麺を入れられません。どんぶりをタップしてスープを入れよう'));
+    else toast(T('スープの入った空のどんぶりがありません'));
     return;
   }
   S.pot[i] = null;
@@ -656,7 +743,7 @@ function flyTebo(slotEl, target, b) {
 function takeReadyNoodle() {
   let best = -1;
   S.pot.forEach((n, i) => { if (n && n.t >= BOIL_TIME && (best < 0 || n.t > S.pot[best].t)) best = i; });
-  if (best < 0) { toast('茹で上がった麺がありません'); return; }
+  if (best < 0) { toast(T('茹で上がった麺がありません')); return; }
   takeNoodle(best);
 }
 
@@ -668,15 +755,15 @@ const PIECES = { chashu: 4, negi: 6 };   // 1人前で飛んでいく個数（�
 
 function addTopping(key) {
   const b = activeBowl();
-  if (!b) { toast('どんぶりがありません'); return; }
+  if (!b) { toast(T('どんぶりがありません')); return; }
   if (b.serving) return;   // お客さんへ飛んでいく途中のどんぶりには、もうのせない
-  if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
+  if (!b.men) { toast(T('先に麺をどんぶりに入れよう')); return; }
   const name = TOPPINGS.find((t) => t.key === key).name;
   sfx.tap();
   if (b.tops[key] > 0) {
     flyTopping(key, b, S.active, 0, false);
     S.bowls[S.active] = newBowl();
-    throwAway(`${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
+    throwAway(LANG === 'en' ? T('のせすぎ', T(name)) : `${name}をのせすぎ！ラーメンはゴミに`, COST_BOWL);
     return;
   }
   b.tops[key] = 1;
@@ -798,7 +885,7 @@ function serveTo(seatIdx) {
   if (!c) return;
   if (c.state !== 'waiting') return;
   const b = S.bowls[seatIdx];
-  if (!b || !b.men) { toast('このお客さんのラーメンはまだできていません'); return; }
+  if (!b || !b.men) { toast(T('このお客さんのラーメンはまだできていません')); return; }
 
   const menu = MENU[c.order];
   const match = Object.keys(menu.rec).every((k) => b.tops[k] === menu.rec[k]);
@@ -806,10 +893,10 @@ function serveTo(seatIdx) {
   if (!match) {
     // 注文とちがう → 突き返されてゴミ。新しい空のどんぶりが出てくる
     S.bowls[seatIdx] = newBowl();
-    throwAway('注文とちがう！ラーメンはゴミに', COST_BOWL);
+    throwAway(T('注文とちがう！ラーメンはゴミに'), COST_BOWL);
     c.pat = Math.min(c.patMax * 0.95, c.pat + c.patMax * 0.2);
     S.rep -= 0.2;
-    c.flash = 'ちがうよ！😠'; c.flashT = 1.5;
+    c.flash = T('ちがうよ！😠'); c.flashT = 1.5;
     sfx.wrong();
     return;
   }
@@ -819,7 +906,7 @@ function serveTo(seatIdx) {
   if (c.water) startEating(seatIdx, c);
   else {
     c.state = 'hot';
-    c.react = '熱っ！お水💧'; c.reactCls = 'bad';
+    c.react = T('熱っ！お水💧'); c.reactCls = 'bad';
     sfx.hot();
   }
 }
@@ -854,7 +941,7 @@ function flyGlass(i) {
 }
 
 function giveWater(c) {
-  if (c.water || c.state === 'leaving') { toast('お水はもう出しています'); return; }
+  if (c.water || c.state === 'leaving') { toast(T('お水はもう出しています')); return; }
   if (!c.glass) c.patMax += WATER_BONUS;   // 最初の1杯で少し長く待ってくれる
   c.water = true;
   c.glass = true;
@@ -872,13 +959,13 @@ function startEating(seatIdx, c) {
   let react, rep;
   if (patRatio >= 0.5) {
     tip = Math.round((100 + 200 * patRatio) / 10) * 10;
-    react = 'うまい！早い！😋'; rep = 0.15; S.perfect++;
+    react = T('うまい！早い！😋'); rep = 0.15; S.perfect++;
     sfx.great();
   } else if (patRatio >= 0.2) {
-    react = 'うまい🙂'; rep = 0.07;
+    react = T('うまい🙂'); rep = 0.07;
     sfx.good();
   } else {
-    react = '待たされた…😐'; rep = -0.03;
+    react = T('待たされた…😐'); rep = -0.03;
     sfx.meh();
   }
   S.rep += rep;
@@ -887,7 +974,7 @@ function startEating(seatIdx, c) {
   S.sales[c.order]++;
   c.state = 'eating'; c.timer = EAT_TIME;
   c.react = react; c.reactCls = rep > 0 ? 'good' : 'bad';
-  showCoin(seatIdx, '+' + yen(pay + tip) + (tip ? '（チップ込）' : ''));
+  showCoin(seatIdx, '+' + yen(pay + tip) + (tip ? T('（チップ込）') : ''));
 }
 
 function showCoin(seatIdx, text) {
@@ -923,7 +1010,7 @@ function update(dt) {
   if (gaveUp > 0) {
     S.walked += gaveUp;
     S.rep -= 0.05 * gaveUp;
-    toast('行列からお客さんが帰ってしまった…');
+    toast(T('行列からお客さんが帰ってしまった…'));
   }
 
   // 席に案内
@@ -948,7 +1035,7 @@ function update(dt) {
       c.waterLvl -= c.drinkRate * dt;
       if (c.waterLvl <= 0) {
         c.waterLvl = 0; c.water = false;
-        c.flash = 'お水おかわり！💧'; c.flashT = 1.8;
+        c.flash = T('お水おかわり！💧'); c.flashT = 1.8;
         sfx.refill();
       }
     }
@@ -956,13 +1043,13 @@ function update(dt) {
       // コップが空のままだとイライラが早く進む
       c.pat += dt * (c.glass && !c.water ? 1.5 : 1);
       if (c.pat >= c.patMax) {
-        if (c.state === 'hot') throwAway('食べずに帰ってしまった…ラーメンはゴミに', 0);
+        if (c.state === 'hot') throwAway(T('食べずに帰ってしまった…ラーメンはゴミに'), 0);
         const b = S.bowls[i];
-        if (b && b.men) throwAway('お客さんが帰ってしまった…ラーメンはゴミに', COST_BOWL);
+        if (b && b.men) throwAway(T('お客さんが帰ってしまった…ラーメンはゴミに'), COST_BOWL);
         S.bowls[i] = null;
         fixActive();
         c.state = 'leaving'; c.timer = 2;
-        c.react = 'もう帰る！💢'; c.reactCls = 'bad';
+        c.react = T('もう帰る！💢'); c.reactCls = 'bad';
         S.rep -= 0.3; S.angry++;
         sfx.angry();
       }
@@ -984,7 +1071,7 @@ function update(dt) {
     if (!n.beeped && n.t >= BOIL_TIME) { n.beeped = true; sfx.pipi(); }
     if (n.t >= BOIL_TIME + OVER_TIME) {
       S.pot[i] = null;
-      throwAway('茹ですぎ！麺はゴミに', COST_NOODLE);
+      throwAway(T('茹ですぎ！麺はゴミに'), COST_NOODLE);
     }
   }
 
@@ -1044,7 +1131,7 @@ function binSVG(key) {
 }
 
 // オーダーシート（伝票）に書く短い名前
-const SLIP_NAME = { ramen: 'ラーメン', chashumen: 'チャ', negiramen: 'ネギ', negichashu: 'ネギチャ' };
+const SLIP_NAME = new Proxy({}, { get: (_, k) => T('slip.' + k) });
 
 // 注文を絵で表す：チャーシュー・ネギの絵。トッピングなしは「ラーメン」の文字
 function orderHtml(order) {
@@ -1054,12 +1141,21 @@ function orderHtml(order) {
     return img ? `<img class="ord-ic" src="${img}" alt="">` : `<span class="ord-ic top ${key}"></span>`;
   };
   const icons = TOPPINGS.filter((t) => rec[t.key]).map((t) => icon(t.key)).join('');
-  return icons || '<span class="ord-txt">ラーメン</span>';
+  return icons || `<span class="ord-txt">${T('ラーメン')}</span>`;
 }
 
 // 長いメニュー名は「ネギ／チャーシュー／メン」の切れ目で折り返す
 function wbrName(name) {
   return name.replace('ネギ', 'ネギ<wbr>').replace('チャーシュー', 'チャーシュー<wbr>').replace(/<wbr>$/, '');
+}
+
+// 壁に貼った短冊メニュー（縦書き、値段は漢数字。英語では英語名と ¥ の値段）
+function buildMenuBoard() {
+  $('menulist').innerHTML = Object.values(MENU).map((m) => {
+    const name = LANG === 'en' ? T(m.name) : m.name.replace('ネギチャ', 'ネギ<br>チャ');
+    const price = LANG === 'en' ? yen(m.price) : kanjiYen(m.price);
+    return `<div class="tanzaku"><span class="t-name">${name}</span><span class="t-price">${price}</span></div>`;
+  }).join('');
 }
 
 // 1250 → 千二百五拾円
@@ -1071,14 +1167,13 @@ function kanjiYen(n) {
 
 function recipeText(rec) {
   const names = TOPPINGS.filter((t) => rec[t.key]).map((t) => t.name);
+  if (LANG === 'en') return names.length ? names.map((n) => T(n)).join(' + ') + T('を1タップ') : T('そのまま');
   return names.length ? names.join('・') + 'を1タップ' : 'そのまま';
 }
 
 function buildUI() {
   // お品書き
-  // 壁に貼った短冊メニュー（縦書き、値段は漢数字）
-  $('menulist').innerHTML = Object.values(MENU).map((m) =>
-    `<div class="tanzaku"><span class="t-name">${m.name.replace('ネギチャ', 'ネギ<br>チャ')}</span><span class="t-price">${kanjiYen(m.price)}</span></div>`).join('');
+  buildMenuBoard();
 
   // 席
   const seats = $('seats');
@@ -1108,8 +1203,8 @@ function buildUI() {
     el.innerHTML = `<div class="hole"></div>
       <div class="tebo"><div class="noodle"></div><div class="handle"></div></div>
       <div class="gauge"><div class="fill"></div></div>
-      <div class="pipi">ピピッ！</div>
-      <div class="chacha">チャッチャッ！</div>`;
+      <div class="pipi">${T('ピピッ！')}</div>
+      <div class="chacha">${T('チャッチャッ！')}</div>`;
     el.addEventListener('pointerdown', (ev) => {
       ev.stopPropagation();
       takeNoodle(i);
@@ -1142,18 +1237,18 @@ function buildUI() {
     const el = document.createElement('div');
     el.className = 'bin';
     el.dataset.key = t.key;
-    el.title = t.name;
+    el.title = T(t.name);
     el.innerHTML = binSVG(t.key);
     el.addEventListener('pointerdown', () => addTopping(t.key));
     ing.appendChild(el);
     binEls[t.key] = el;
     const img3d = Bowl3D.images && Bowl3D.images[t.key === 'chashu' ? 'binChashu' : 'binNegi'];
-    if (img3d) el.querySelector('svg').outerHTML = `<img class="bin-img" src="${img3d}" alt="${t.name}">`;
+    if (img3d) el.querySelector('svg').outerHTML = `<img class="bin-img" src="${img3d}" alt="${T(t.name)}">`;
     else el.querySelector('svg').classList.add('bin-img');
   }
   // コップはカウンターの左側
   waterEl = $('cups');
-  waterEl.title = 'お冷';
+  waterEl.title = T('お冷');
   const glassImg = Bowl3D.images && Bowl3D.images.glass;
   waterEl.innerHTML = `<div class="tray">${(glassImg ? `<img class="c3d" src="${glassImg}" alt="">` : '<div class="c"></div>').repeat(CUP_COUNT)}</div>`;
   // コップの水を動かす（コマを順に切りかえる。コップごとに少しずらす）
@@ -1231,7 +1326,7 @@ function render() {
       // 並んだ人が少しずつ上下にずれて見えるように
       return `<span class="q-person${imp ? ' impatient' : ''}">${face}</span>`;
     }).join('') +
-      (S.queue.length > shown.length ? `<span class="q-more">ほか${S.queue.length - shown.length}人</span>` : '');
+      (S.queue.length > shown.length ? `<span class="q-more">${T('ほか{0}人', S.queue.length - shown.length)}</span>` : '');
   }
 
   // 席
@@ -1313,7 +1408,7 @@ function render() {
     e.slot.classList.toggle('active', !!b && i === S.active);
     if (!b) { e.slip.innerHTML = ''; e.tops.innerHTML = ''; continue; }
     // 伝票（席番号と注文）
-    e.slip.innerHTML = c ? `<span class="no">${i + 1}番</span><span class="nm${SLIP_NAME[c.order].length > 6 ? ' long' : ''}">${SLIP_NAME[c.order]}</span>` : '';
+    e.slip.innerHTML = c ? `<span class="no">${T('{0}番', i + 1)}</span><span class="nm${SLIP_NAME[c.order].length > 6 ? ' long' : ''}">${SLIP_NAME[c.order]}</span>` : '';
     e.bowl.classList.toggle('has-soup', b.soup);
     e.bowl.classList.toggle('has-men', b.men && !b.menFly);
     let html = '';
@@ -1330,7 +1425,7 @@ function render() {
 // お客さんの表情
 function exprOf(c) {
   if (c.state === 'leaving') return c.reactCls === 'good' ? 'happy' : 'angry';
-  if (c.flashT > 0) return c.flash.startsWith('お水') ? 'wait' : 'angry';
+  if (c.flashT > 0) return c.flash === T('お水おかわり！💧') ? 'wait' : 'angry';
   if (c.state === 'eating') return c.timer < 1 ? 'happy' : 'eat';
   if (c.state === 'hot') return 'hot';
   const r = 1 - c.pat / c.patMax;
@@ -1388,11 +1483,11 @@ function startGame() {
 }
 
 function rank(rep, money) {
-  if (rep >= 4.5 && money >= 50000) return '🏆 伝説の行列店';
-  if (rep >= 4 && money >= 35000) return '🥇 雑誌に載る人気店';
-  if (rep >= 3 && money >= 20000) return '🥈 地元で評判の店';
-  if (money >= 10000) return '🥉 ふつうのラーメン屋';
-  return '🍥 修行中の見習い';
+  if (rep >= 4.5 && money >= 50000) return T('rank.legend');
+  if (rep >= 4 && money >= 35000) return T('rank.magazine');
+  if (rep >= 3 && money >= 20000) return T('rank.local');
+  if (money >= 10000) return T('rank.normal');
+  return T('rank.trainee');
 }
 
 function endGame() {
@@ -1407,42 +1502,44 @@ function endGame() {
     if (S.money > best) localStorage.setItem('ramen-best', String(S.money));
   } catch (e) { /* 保存できなくても続行 */ }
   const isBest = S.money > best;
-  const rows = Object.keys(MENU).map((k) => `<tr><td>${MENU[k].name}</td><td>${S.sales[k]}杯</td></tr>`).join('');
+  const rows = Object.keys(MENU).map((k) => `<tr><td>${T(MENU[k].name)}</td><td>${T('{0}杯', S.sales[k])}</td></tr>`).join('');
   $('panel').innerHTML = `
-    <h1>本日の営業終了</h1>
+    <h1>${T('本日の営業終了')}</h1>
     <div class="result-big">${rank(S.rep, S.money)}</div>
-    <div class="result-big">利益 ${yen(S.money)} ${isBest ? '🎉 新記録！' : ''}</div>
+    <div class="result-big">${T('利益')} ${yen(S.money)} ${isBest ? T('🎉 新記録！') : ''}</div>
     <table>
-      <tr><th>提供数</th><td>${S.served}杯（早くておいしい！ ${S.perfect}杯）</td></tr>
-      <tr><th>怒って帰った客</th><td>${S.angry}人</td></tr>
-      <tr><th>行列をあきらめた客</th><td>${S.walked}人</td></tr>
-      <tr><th>ゴミ</th><td>${S.garbage}個（廃棄ロス ${yen(S.waste)}）</td></tr>
-      <tr><th>評判</th><td>${S.rep.toFixed(1)} / 5.0</td></tr>
-      <tr><th>最高利益</th><td>${yen(Math.max(best, S.money))}</td></tr>
+      <tr><th>${T('提供数')}</th><td>${LANG === 'en' ? `${S.served} bowls (fast & tasty: ${S.perfect})` : `${S.served}杯（早くておいしい！ ${S.perfect}杯）`}</td></tr>
+      <tr><th>${T('怒って帰った客')}</th><td>${T('{0}人', S.angry)}</td></tr>
+      <tr><th>${T('行列をあきらめた客')}</th><td>${T('{0}人', S.walked)}</td></tr>
+      <tr><th>${T('ゴミ')}</th><td>${LANG === 'en' ? `${S.garbage} (loss ${yen(S.waste)})` : `${S.garbage}個（廃棄ロス ${yen(S.waste)}）`}</td></tr>
+      <tr><th>${T('評判')}</th><td>${S.rep.toFixed(1)} / 5.0</td></tr>
+      <tr><th>${T('最高利益')}</th><td>${yen(Math.max(best, S.money))}</td></tr>
     </table>
-    <h2>メニュー別</h2>
+    <h2>${T('メニュー別')}</h2>
     <table>${rows}</table>
     <div class="share-row">
-      <button class="btn share" id="shareBtn">📣 結果をシェア</button>
-      <a class="btn share x" id="shareX" target="_blank" rel="noopener">𝕏 でポスト</a>
+      <button class="btn share" id="shareBtn">${T('📣 結果をシェア')}</button>
+      <a class="btn share x" id="shareX" target="_blank" rel="noopener">${T('𝕏 でポスト')}</a>
     </div>
     <div class="btn-row">
-      <button class="btn sub" id="topBtn">トップへ</button>
-      <button class="btn" id="startBtn">もう一度営業する</button>
+      <button class="btn sub" id="topBtn">${T('トップへ')}</button>
+      <button class="btn" id="startBtn">${T('もう一度営業する')}</button>
     </div>`;
   $('topBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
   // シェア：スマホは共有メニュー、使えないときは文章をコピー。X には直接ポストもできる
   const url = location.href.split('?')[0].split('#')[0];
-  const text = `🍜 行列のできるラーメン店\n${rank(S.rep, S.money)}\n利益 ${yen(S.money)}・${S.served}杯（早くておいしい！ ${S.perfect}杯）\n評判 ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`;
-  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + '\n') + '&url=' + encodeURIComponent(url) + '&hashtags=' + encodeURIComponent('行列のできるラーメン店');
+  const text = LANG === 'en'
+    ? `🍜 ${T('行列のできるラーメン店')}\n${rank(S.rep, S.money)}\nProfit ${yen(S.money)} · ${S.served} bowls (fast & tasty: ${S.perfect})\nRating ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`
+    : `🍜 行列のできるラーメン店\n${rank(S.rep, S.money)}\n利益 ${yen(S.money)}・${S.served}杯（早くておいしい！ ${S.perfect}杯）\n評判 ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`;
+  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + '\n') + '&url=' + encodeURIComponent(url) + '&hashtags=' + encodeURIComponent(LANG === 'en' ? 'RamenShopWithALine' : '行列のできるラーメン店');
   $('shareBtn').addEventListener('click', async () => {
     try {
-      if (navigator.share) { await navigator.share({ title: '行列のできるラーメン店', text, url }); return; }
+      if (navigator.share) { await navigator.share({ title: T('行列のできるラーメン店'), text, url }); return; }
     } catch (e) { if (e && e.name === 'AbortError') return; }
     try {
       await navigator.clipboard.writeText(text + '\n' + url);
-      toast('結果をコピーしました。SNSに貼り付けてシェアしてね');
+      toast(T('結果をコピーしました。SNSに貼り付けてシェアしてね'));
     } catch (e) {
       window.open($('shareX').href, '_blank', 'noopener');
     }
@@ -1461,15 +1558,20 @@ function showTitle() {
   $('panel').className = 'panel top';
   $('panel').innerHTML = `
     <div class="top-noren"><span>ら</span><span>ー</span><span>め</span><span>ん</span></div>
-    <h1 class="top-title">行列のできる<br><span>ラーメン店</span></h1>
+    <div class="lang-switch">
+      <button class="lang-btn${LANG === 'ja' ? ' on' : ''}" data-lang="ja">日本語</button>
+      <button class="lang-btn${LANG === 'en' ? ' on' : ''}" data-lang="en">English</button>
+    </div>
+    <h1 class="top-title">${T('top.small')}<br><span>${T('top.big')}</span></h1>
     <div class="top-hero">
-      ${ramen ? `<img class="top-ramen" src="${ramen}" alt="ラーメン">` : '<div class="top-ramen-emoji">🍜</div>'}
+      ${ramen ? `<img class="top-ramen" src="${ramen}" alt="${T('ラーメン')}">` : '<div class="top-ramen-emoji">🍜</div>'}
     </div>
     <div class="top-line">${people}</div>
-    <p class="top-lead">注文どおりにラーメンを作って、行列をさばこう！</p>
-    ${best ? `<p class="top-best">最高利益 ${yen(best)}</p>` : ''}
-    <button class="btn" id="startBtn">開店！</button>
-    <button class="btn sub" id="helpBtn">遊び方</button>`;
+    <p class="top-lead">${T('top.lead')}</p>
+    ${best ? `<p class="top-best">${T('最高利益')} ${yen(best)}</p>` : ''}
+    <button class="btn" id="startBtn">${T('開店！')}</button>
+    <button class="btn sub" id="helpBtn">${T('遊び方')}</button>`;
+  document.querySelectorAll('.lang-btn').forEach((b) => b.addEventListener('click', () => { setLang(b.dataset.lang); showTitle(); }));
   $('startBtn').addEventListener('click', startGame);
   $('helpBtn').addEventListener('click', showHelp);
 }
@@ -1477,8 +1579,36 @@ function showTitle() {
 // ---------- 遊び方ページ ----------
 function showHelp() {
   const menuRows = Object.values(MENU).map((m) =>
-    `<tr><td>${m.name}</td><td>${recipeText(m.rec)}</td><td>${yen(m.price)}</td></tr>`).join('');
+    `<tr><td>${T(m.name)}</td><td>${recipeText(m.rec)}</td><td>${yen(m.price)}</td></tr>`).join('');
   $('panel').className = 'panel';
+  if (LANG === 'en') {
+    $('panel').innerHTML = `
+    <h1>How to play</h1>
+    <p>Make ramen exactly as each customer at the counter orders, and serve it!
+    Happy customers raise your rating, and the line gets longer and longer.</p>
+    <h2>What to tap</h2>
+    <ul>
+      <li>🥛 Tap the <b>glasses</b> on the tray → water goes to a customer who needs it. Ramen is hot, so <b>customers won't eat without water</b>. When a glass is empty, tap the <b>glasses or the customer</b> to refill it</li>
+      <li>🍜 Tap an empty hole in the <b>noodle boiler</b> to <b>add noodles</b> (up to 6 at once)</li>
+      <li>🥣 An empty <b>bowl</b> appears for each customer. Tap it to <b>pour soup</b> (noodles need soup first)</li>
+      <li>🔔 When a basket goes <b>Beep!</b>, tap it to <b>take the noodles out</b> (they're drained into a bowl with soup)</li>
+      <li>🥩 Tap <b>Chashu</b> or <b>Negi</b> on the right → one serving flies into the selected bowl</li>
+      <li>🙋 When the ramen is done, it <b>flies to the customer automatically</b></li>
+    </ul>
+    <h2>Menu</h2>
+    <table>${menuRows}</table>
+    <h2>Things that get wasted</h2>
+    <ul>
+      <li><b>Overcooked noodles</b> left in the boiler after the beep</li>
+      <li>Ramen with the same topping added twice, or the <b>wrong order</b></li>
+      <li>Ramen whose customer left before it was served</li>
+    </ul>
+    <p style="font-size:12px;color:#666">Keys: M music / G water / Q add noodles / W take noodles out / A chashu / S negi / 1–6 refill the empty glass at seat 1–6</p>
+    <div class="btn-row">
+      <button class="btn sub" id="backBtn">Back</button>
+      <button class="btn" id="startBtn">Open shop!</button>
+    </div>`;
+  } else {
   $('panel').innerHTML = `
     <h1>遊び方</h1>
     <p>カウンター越しにやってくるお客さんの注文どおりにラーメンを作って出そう！
@@ -1505,6 +1635,7 @@ function showHelp() {
       <button class="btn sub" id="backBtn">もどる</button>
       <button class="btn" id="startBtn">開店！</button>
     </div>`;
+  }
   $('backBtn').addEventListener('click', showTitle);
   $('startBtn').addEventListener('click', startGame);
 }
@@ -1560,6 +1691,7 @@ async function preloadSfx() {
   }
 }
 
+applyStaticText();
 buildUI();
 preloadSfx();
 fitLayout(true);
