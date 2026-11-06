@@ -877,3 +877,30 @@ html, body { overflow-x: hidden; max-width: 100%; }
 /* 金額は、お客さんの顔のあたりに出して、上へ浮かびながら消える（スクショでも読める濃さで） */
 .coin { top: auto !important; bottom: 70px; animation: coinup 1.6s ease-out forwards !important; }
 @keyframes coinup { 0% { opacity: 0; translate: 0 10px; } 12% { opacity: 1; translate: 0 0; } 75% { opacity: 1; } 100% { opacity: 0; translate: 0 -34px; } }
+
+/* ===== 行列：席に座ったお客さんの後ろに、順番待ちのお客さんが立って並ぶ ===== */
+#queue {
+  position: absolute !important;
+  top: auto !important; left: 0 !important; right: 0 !important;
+  bottom: calc(30px + var(--seat-h, 200px) * 0.36) !important;   /* 座ったお客さんの肩くらいの高さに足元 */
+  height: auto !important;
+  display: flex !important; flex-wrap: nowrap !important; align-items: flex-end;
+  justify-content: flex-start; gap: 0 !important;
+  padding: 0 10px; z-index: 0; pointer-events: none;
+}
+#seats { z-index: 1; }
+#queue .q-person { margin-right: -6px; }
+#queue .q-person:nth-child(2n) { transform: translateY(-5px); }
+#queue .q3d { width: 44px !important; height: 55px !important; filter: brightness(.9) saturate(.85); }
+#queue .q-person.impatient .q3d { animation: shake .4s infinite; }
+#queue .q-more {
+  margin-left: 10px; align-self: center; font-size: 12px; font-weight: bold;
+  color: #fff; background: #5b3a1fcc; border-radius: 10px; padding: 1px 8px;
+}
+@media (max-width: 640px) {
+  #queue { padding: 0 4px; }
+  #queue .q3d { width: 36px !important; height: 45px !important; }
+  #queue .q-person { margin-right: -4px; }
+  #queue .q-more { font-size: 10px; padding: 1px 5px; margin-left: 6px; }
+}
+@media (max-width: 640px) { #queue .q-more { display: none; } }   /* スマホは人数を上のバーで見る */

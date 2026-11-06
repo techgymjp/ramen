@@ -1224,13 +1224,14 @@ function render() {
   const qEl = $('queue');
   if (qEl.dataset.key !== qKey) {
     qEl.dataset.key = qKey;
-    const shown = S.queue.slice(0, 14);
+    const shown = S.queue.slice(0, window.innerWidth <= 640 ? 9 : 16);
     qEl.innerHTML = shown.map((c) => {
       const imp = c.qWait > c.qMax * 0.7;
       const face = Bowl3D.ok ? `<img class="q3d" src="${Bowl3D.person(c.look, imp ? 'wait' : 'normal')}" alt="">` : c.face;
+      // 並んだ人が少しずつ上下にずれて見えるように
       return `<span class="q-person${imp ? ' impatient' : ''}">${face}</span>`;
     }).join('') +
-      (S.queue.length > shown.length ? `<span class="q-more">+${S.queue.length - shown.length}</span>` : '');
+      (S.queue.length > shown.length ? `<span class="q-more">ほか${S.queue.length - shown.length}人</span>` : '');
   }
 
   // 席
