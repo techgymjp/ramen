@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">行列ラーメン</string>
+    <string name="title_activity_main">行列のできるラーメン店</string>
+    <string name="package_name">jp.techgym.ramen</string>
+    <string name="custom_url_scheme">jp.techgym.ramen</string>
+    <!-- AdMob のアプリ ID。本番の ID が届くまでは Google 公式のテスト用アプリ ID を入れておく -->
+    <string name="admob_app_id">ca-app-pub-3940256099942544~3347511713</string>
+</resources>

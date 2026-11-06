@@ -1016,3 +1016,19 @@ html, body { overflow-x: hidden; max-width: 100%; }
   content: ""; position: absolute; inset: 0; background: rgba(235,245,250,.28);
 }
 #queue .q-outp img { opacity: .72; filter: brightness(.95) saturate(.6) blur(.4px) !important; }
+
+/* ===== アプリ（Android）用 ===== */
+/* バナー広告（下中央、高さ50）と重ならないよう、画面の下をあける */
+#overlay.with-banner { padding-bottom: 56px; box-sizing: border-box; }
+#overlay.with-banner .panel { max-height: calc(100% - 24px); }
+.native .keys-help { display: none; }     /* アプリではキーボードの説明を出さない */
+.app-info { margin-top: 10px; display: flex; justify-content: center; gap: 14px; font-size: 12px; color: #8a6a48; flex-wrap: wrap; }
+.app-info a { color: #8a5a2b; }
+#recallBtn {
+  position: absolute; left: 50%; top: 40px; transform: translateX(-50%); z-index: 60;
+  background: #1d9bf0; color: #fff; border: none; border-radius: 22px; padding: 10px 18px;
+  font: inherit; font-weight: bold; font-size: 15px; box-shadow: 0 4px 10px rgba(0,0,0,.35); white-space: nowrap;
+  animation: recallIn .3s ease-out;
+}
+@keyframes recallIn { from { transform: translate(-50%, -8px); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@media (max-width: 640px) { #recallBtn { font-size: 13px; padding: 8px 14px; } }

@@ -1,0 +1,8 @@
+{
+  "appId": "jp.techgym.ramen",
+  "appName": "行列ラーメン",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#3b2416"
+  }
+}

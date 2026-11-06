@@ -1,5 +1,17 @@
 'use strict';
 
+// ===================== アプリ（Android）で動いているか =====================
+// Web 版では Capacitor がないので、アプリ専用の処理は何もしない
+const NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+const plugin = (name) => (NATIVE && window.Capacitor.Plugins ? window.Capacitor.Plugins[name] : null);
+const PRIVACY_URL = { ja: 'https://techgym.jp/privacy-policy/', en: 'https://techgym.jp/privacy-policy-en/' };
+const RECALL_MAX = 3;   // リワード広告「お客さんを呼び戻す」を使える回数（1 回の営業で）
+// 広告を出している間などに、効果音と BGM をまとめて止める・戻す（ads.js から呼ばれる）
+window.Sound = {
+  suspend() { try { if (actx && actx.state === 'running') actx.suspend(); } catch (e) { /* 続行 */ } },
+  resume() { try { if (actx && actx.state === 'suspended' && !document.hidden) actx.resume(); } catch (e) { /* 続行 */ } },
+};
+
 // ===================== 言語（日本語 / English） =====================
 // ?lang=en / ?lang=ja、前回選んだ言語、端末の言語の順で決める
 let LANG = (() => {
@@ -40,6 +52,10 @@ const EN = {
   'そのまま': 'plain', 'を1タップ': ': tap once',
   'ピピッ！': 'Beep!', 'チャッチャッ！': 'Shake!', 'お冷': 'Water',
   'ほか{0}人': '+{0} more', '外にも{0}人': '+{0} outside', '{0}番': '#{0}',
+  '一時停止': 'Paused', '再開': 'Resume', '呼び戻し': 'Called back', '{0}回': '{0}',
+  'プライバシーポリシー': 'Privacy policy', '広告の設定': 'Ad settings',
+  '📺 広告を見て呼び戻す（あと{0}回）': '📺 Watch an ad to call them back ({0} left)',
+  'お客さんが戻ってきてくれた！': 'The customer came back!',
   'rank.legend': '🏆 Legendary ramen shop', 'rank.magazine': '🥇 Featured in magazines', 'rank.local': '🥈 Local favorite',
   'rank.normal': '🥉 Ordinary ramen shop', 'rank.trainee': '🍥 Apprentice cook',
   '{0}杯': '{0} bowls', '{0}人': '{0}', '{0}個': '{0}',
@@ -143,6 +159,7 @@ function newGame() {
     angry: 0,
     walked: 0,
     garbage: 0,
+    recalls: 0,       // リワード広告で呼び戻した回数
     waste: 0,
     queue: [],
     seats: Array(SEAT_COUNT).fill(null),
@@ -1050,6 +1067,7 @@ function update(dt) {
         c.react = T('もう帰る！💢'); c.reactCls = 'bad';
         S.rep -= 0.3; S.angry++;
         sfx.angry();
+        offerRecall(c);
       }
     } else {
       c.timer -= dt;
@@ -1479,7 +1497,10 @@ function loop(ts) {
   if (!running) return;
   const dt = Math.min(0.1, (ts - lastTs) / 1000 || 0);
   lastTs = ts;
+  // 一時停止中・広告を見ている間は、時間を止める
+  if (paused || (window.Ads && Ads.showing)) { requestAnimationFrame(loop); return; }
   update(dt);
+  updateRecall();
   if (running) { render(); render3D(); }
   requestAnimationFrame(loop);
 }
@@ -1506,6 +1527,9 @@ function startGame() {
   $('queue').dataset.key = 'x';
   $('overlay').classList.add('hidden');
   running = true;
+  paused = false;
+  recall = null;
+  setBanner(false);
   if (bgmOn) BGM.start(getAudio());
   lastTs = performance.now();
   requestAnimationFrame(loop);
@@ -1543,6 +1567,7 @@ function endGame() {
       <tr><th>${T('行列をあきらめた客')}</th><td>${T('{0}人', S.walked)}</td></tr>
       <tr><th>${T('ゴミ')}</th><td>${LANG === 'en' ? `${S.garbage} (loss ${yen(S.waste)})` : `${S.garbage}個（廃棄ロス ${yen(S.waste)}）`}</td></tr>
       <tr><th>${T('評判')}</th><td>${S.rep.toFixed(1)} / 5.0</td></tr>
+      ${S.recalls ? `<tr><th>${T('呼び戻し')}</th><td>${T('{0}回', S.recalls)}</td></tr>` : ''}
       <tr><th>${T('最高利益')}</th><td>${yen(Math.max(best, S.money))}</td></tr>
     </table>
     <h2>${T('メニュー別')}</h2>
@@ -1555,26 +1580,33 @@ function endGame() {
       <button class="btn sub" id="topBtn">${T('トップへ')}</button>
       <button class="btn" id="startBtn">${T('もう一度営業する')}</button>
     </div>`;
-  $('topBtn').addEventListener('click', showTitle);
-  $('startBtn').addEventListener('click', startGame);
+  $('topBtn').addEventListener('click', () => withInterstitial(showTitle));
+  $('startBtn').addEventListener('click', () => withInterstitial(startGame));
   // シェア：スマホは共有メニュー、使えないときは文章をコピー。X には直接ポストもできる
   const url = SHARE_URL;   // シェアするページ（ゲームの紹介記事）
   const text = LANG === 'en'
     ? `🍜 ${T('行列のできるラーメン店')}\n${rank(S.rep, S.money)}\nProfit ${yen(S.money)} · ${S.served} bowls (fast & tasty: ${S.perfect})\nRating ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`
     : `🍜 行列のできるラーメン店\n${rank(S.rep, S.money)}\n利益 ${yen(S.money)}・${S.served}杯（早くておいしい！ ${S.perfect}杯）\n評判 ${'★'.repeat(Math.round(S.rep))}${'☆'.repeat(5 - Math.round(S.rep))} ${S.rep.toFixed(1)}`;
-  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(text + '\n') + '&url=' + encodeURIComponent(url) + '&hashtags=' + encodeURIComponent(LANG === 'en' ? 'RamenShopWithALine' : '行列のできるラーメン店');
+  const shareText = S.recalls ? text + (LANG === 'en' ? `\nCalled back ${S.recalls}` : `\n呼び戻し ${S.recalls}回`) : text;
+  $('shareX').href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText + '\n') + '&url=' + encodeURIComponent(url) + '&hashtags=' + encodeURIComponent(LANG === 'en' ? 'RamenShopWithALine' : '行列のできるラーメン店');
   $('shareBtn').addEventListener('click', async () => {
+    const nativeShare = plugin('Share');   // アプリでは Android の共有メニュー
+    if (nativeShare) {
+      try { await nativeShare.share({ title: T('行列のできるラーメン店'), text: shareText, url, dialogTitle: T('📣 結果をシェア') }); } catch (e) { /* キャンセル */ }
+      return;
+    }
     try {
-      if (navigator.share) { await navigator.share({ title: T('行列のできるラーメン店'), text, url }); return; }
+      if (navigator.share) { await navigator.share({ title: T('行列のできるラーメン店'), text: shareText, url }); return; }
     } catch (e) { if (e && e.name === 'AbortError') return; }
     try {
-      await navigator.clipboard.writeText(text + '\n' + url);
+      await navigator.clipboard.writeText(shareText + '\n' + url);
       toast(T('結果をコピーしました。SNSに貼り付けてシェアしてね'));
     } catch (e) {
       window.open($('shareX').href, '_blank', 'noopener');
     }
   });
   $('overlay').classList.remove('hidden');
+  setBanner(true);
 }
 
 // ---------- トップページ ----------
@@ -1602,8 +1634,22 @@ function showTitle() {
     <button class="btn" id="startBtn">${T('開店！')}</button>
     <button class="btn sub" id="helpBtn">${T('遊び方')}</button>`;
   document.querySelectorAll('.lang-btn').forEach((b) => b.addEventListener('click', () => { setLang(b.dataset.lang); showTitle(); }));
-  $('startBtn').addEventListener('click', startGame);
+  $('startBtn').addEventListener('click', () => withInterstitial(startGame));
   $('helpBtn').addEventListener('click', showHelp);
+  // アプリでは、バージョン・プライバシーポリシー・（必要な地域では）広告の設定を出す
+  if (NATIVE) {
+    const info = document.createElement('div');
+    info.className = 'app-info';
+    info.innerHTML = `<span>${window.APP_VERSION || ''}</span>
+      <a href="#" id="privacyLink">${T('プライバシーポリシー')}</a>
+      <a href="#" id="adPrivacyLink" hidden>${T('広告の設定')}</a>`;
+    $('panel').appendChild(info);
+    $('privacyLink').addEventListener('click', (e) => { e.preventDefault(); window.open(PRIVACY_URL[LANG], '_blank'); });
+    $('adPrivacyLink').addEventListener('click', (e) => { e.preventDefault(); Ads.showPrivacyOptions(); });
+    Ads.initDone.then(() => { const a = $('adPrivacyLink'); if (a && Ads.privacyOptionsRequired) a.hidden = false; });
+  }
+  $('overlay').classList.remove('hidden');
+  setBanner(true);
 }
 
 // ---------- 遊び方ページ ----------
@@ -1633,7 +1679,7 @@ function showHelp() {
       <li>Ramen with a <b>topping that wasn't ordered</b> (e.g. chashu on Negi Ramen)</li>
       <li>Ramen whose customer left before it was served</li>
     </ul>
-    <p style="font-size:12px;color:#666">Keys: M music / G water / Q add noodles / W take noodles out / A chashu / S negi / 1–6 refill the empty glass at seat 1–6</p>
+    <p class="keys-help" style="font-size:12px;color:#666">Keys: M music / G water / Q add noodles / W take noodles out / A chashu / S negi / 1–6 refill the empty glass at seat 1–6</p>
     <div class="btn-row">
       <button class="btn sub" id="backBtn">Back</button>
       <button class="btn" id="startBtn">Open shop!</button>
@@ -1660,19 +1706,129 @@ function showHelp() {
       <li><b>注文にないトッピング</b>をのせたラーメン（例：ネギラーメンにチャーシュー）</li>
       <li>麺を入れたまま、お客さんが帰ってしまったラーメン</li>
     </ul>
-    <p style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6の空のコップに水</p>
+    <p class="keys-help" style="font-size:12px;color:#666">キー操作：M BGM / G 水 / Q 麺を入れる / W 麺を出す / A チャーシュー / S ネギ / 1〜6 席1〜6の空のコップに水</p>
     <div class="btn-row">
       <button class="btn sub" id="backBtn">もどる</button>
       <button class="btn" id="startBtn">開店！</button>
     </div>`;
   }
-  $('backBtn').addEventListener('click', showTitle);
-  $('startBtn').addEventListener('click', startGame);
+  $('backBtn').addEventListener('click', () => withInterstitial(showTitle));
+  $('startBtn').addEventListener('click', () => withInterstitial(startGame));
+  setBanner(true);
+}
+
+// ===================== 一時停止・広告・戻るボタン（アプリ） =====================
+let paused = false;
+
+function pauseGame() {
+  if (!running || paused) return;
+  paused = true;
+  hideRecall();
+  $('panel').className = 'panel';
+  $('panel').innerHTML = `
+    <h1>${T('一時停止')}</h1>
+    <div class="btn-row">
+      <button class="btn sub" id="pauseTop">${T('トップへ')}</button>
+      <button class="btn" id="pauseResume">${T('再開')}</button>
+    </div>`;
+  $('pauseResume').addEventListener('click', resumeFromPause);
+  $('pauseTop').addEventListener('click', () => withInterstitial(() => { running = false; paused = false; BGM.stop(); showTitle(); }));
+  $('overlay').classList.remove('hidden');
+  setBanner(true);
+}
+
+function resumeFromPause() {
+  if (!paused) return;
+  withInterstitial(() => {
+    if (!paused) return;
+    paused = false;
+    $('overlay').classList.add('hidden');
+    setBanner(false);
+    Sound.resume();
+    lastTs = performance.now();
+  });
+}
+
+// 全画面広告を見てから次へ進む（Web 版や広告が読めないときは、そのまま進む）
+let adBusy = false;
+async function withInterstitial(fn) {
+  if (adBusy) return;
+  if (window.Ads && Ads.available) {
+    adBusy = true;
+    try { await Ads.showInterstitial(3000); } catch (e) { /* 出せなくても進む */ }
+    adBusy = false;
+  }
+  fn();
+}
+
+// バナー広告：トップ・あそびかた・一時停止・結果画面の下中央だけ（プレイ中は出さない）
+function setBanner(on) {
+  $('overlay').classList.toggle('with-banner', !!(on && window.Ads && Ads.available));
+  if (window.Ads) Ads.setBanner(!!on);
+}
+
+// ---------- リワード広告：怒って帰ったお客さんを呼び戻す ----------
+// いちばん悔しい失敗（待たせすぎて怒って帰られる）を取り返せる。広告を最後まで見たときだけ、
+// そのお客さんの評判の減点と「怒って帰った客」を取り消して、行列の先頭に戻ってもらう（1 回の営業で 3 回まで）
+let recall = null;   // { c, showAt, hideAt }
+function offerRecall(c) {
+  if (!window.Ads || !Ads.canReward || S.recalls >= RECALL_MAX) return;
+  recall = { c, showAt: S.t + 2.5, hideAt: S.t + 8.5 };   // 帰っていく様子を見届けてから出し、少しで消える
+}
+function hideRecall() { const el = $('recallBtn'); if (el) el.hidden = true; }
+function updateRecall() {
+  const el = $('recallBtn');
+  if (!el) return;
+  if (recall && S.t >= recall.hideAt) recall = null;
+  const show = !!recall && S.t >= recall.showAt && running && !paused;
+  if (show) el.textContent = T('📺 広告を見て呼び戻す（あと{0}回）', RECALL_MAX - S.recalls);
+  el.hidden = !show;
+}
+async function useRecall() {
+  if (!recall || adBusy) return;
+  const r = recall;
+  recall = null;
+  hideRecall();
+  adBusy = true;
+  const result = await Ads.showRewarded();
+  adBusy = false;
+  lastTs = performance.now();
+  if (result !== 'rewarded' || !running) return;
+  // 評判と「怒って帰った客」を取り消し、気を取り直して行列の先頭へ
+  S.rep = Math.min(5, S.rep + 0.3);
+  S.angry = Math.max(0, S.angry - 1);
+  S.recalls++;
+  const c = r.c;
+  Object.assign(c, { state: 'waiting', pat: 0, patMax: rand(30, 42), timer: 0, react: '', reactCls: '', flash: '', flashT: 0, qWait: 0, water: false, glass: false });
+  S.queue.unshift(c);
+  toast(T('お客さんが戻ってきてくれた！'));
+}
+
+// 別のアプリに切りかえたら、自動で一時停止して音を止める
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    if (running && !(window.Ads && Ads.showing)) pauseGame();
+    Sound.suspend();
+  } else if (!(window.Ads && Ads.showing)) {
+    Sound.resume();
+  }
+});
+
+// Android の戻るボタン：プレイ中は一時停止（一時停止中なら再開）、あそびかたはトップへ、トップ・結果画面ではアプリを終了
+if (plugin('App')) {
+  plugin('App').addListener('backButton', () => {
+    if (adBusy) return;
+    if (running) { if (paused) resumeFromPause(); else pauseGame(); return; }
+    if ($('backBtn')) { withInterstitial(showTitle); return; }
+    plugin('App').exitApp();
+  });
 }
 
 // ===================== キーボード =====================
 document.addEventListener('keydown', (ev) => {
   if (!running || ev.repeat) return;
+  if (ev.key === 'Escape' || ev.key === 'p' || ev.key === 'P') { if (paused) resumeFromPause(); else pauseGame(); return; }
+  if (paused) return;
   const k = ev.key.toLowerCase();
   if (k.length !== 1) return;
   if (k >= '1' && k <= String(SEAT_COUNT)) tapCustomer(Number(k) - 1);
@@ -1725,6 +1881,9 @@ applyStaticText();
 buildUI();
 preloadSfx();
 fitLayout(true);
+$('pauseBtn').addEventListener('click', () => { if (running) { if (paused) resumeFromPause(); else pauseGame(); } });
+$('recallBtn').addEventListener('pointerdown', (e) => { e.stopPropagation(); useRecall(); });
+document.body.classList.toggle('native', NATIVE);
 showTitle();
 updateBgmBtn();
 $('bgmBtn').addEventListener('click', toggleBgm);

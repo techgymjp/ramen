@@ -2,9 +2,9 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>行列のできるラーメン店</title>
-<link rel="stylesheet" href="style.css?v=20261106013752">
+<link rel="stylesheet" href="style.css?v=20261106014915">
 </head>
 <body>
 <div id="game">
@@ -16,6 +16,7 @@
     <div class="hud-item"><span id="lblLine">行列</span> <span id="qcount">0</span><span id="lblPpl">人</span></div>
     <div class="hud-item"><span id="lblTrash">ゴミ</span> <span id="garbage">0</span></div>
     <button id="bgmBtn" class="hud-btn" type="button">🎵 BGM ON</button>
+    <button id="pauseBtn" class="hud-btn" type="button" aria-label="pause">⏸</button>
   </header>
 
   <!-- 客席側（奥） -->
@@ -40,6 +41,8 @@
   <!-- 厨房（手前） -->
   <section id="kitchen">
     <div id="toast"></div>
+    <!-- リワード広告：怒って帰ったお客さんを呼び戻す（アプリのみ） -->
+    <button id="recallBtn" type="button" hidden></button>
     <div class="k-block boiler-block">
       <div id="cups"></div>
       <div id="boilers"></div>
@@ -57,9 +60,13 @@
     <div class="panel" id="panel"></div>
   </div>
 </div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="bowl3d.js?v=20261106013752"></script>
-<script src="bgm.js?v=20261106013752"></script>
-<script src="game.js?v=20261106013752"></script>
+<!-- three.js（MIT License）を同梱。アプリはオフラインで遊べる -->
+<script src="vendor/three.min.js"></script>
+<script src="build-info.js?v=20261106014915"></script>
+<script src="ads-config.js?v=20261106014915"></script>
+<script src="ads.js?v=20261106014915"></script>
+<script src="bowl3d.js?v=20261106014915"></script>
+<script src="bgm.js?v=20261106014915"></script>
+<script src="game.js?v=20261106014915"></script>
 </body>
 </html>
