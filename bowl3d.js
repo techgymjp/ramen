@@ -995,11 +995,14 @@ const Bowl3D = (() => {
   }
 
   const personCache = {};
-  function person(idx, expr) {
-    const k = idx + ':' + expr;
+  // yaw：体の向き（0 = 正面、プラスで画面の右を向く）
+  function person(idx, expr, yaw = 0) {
+    const k = idx + ':' + expr + ':' + yaw;
     if (!personCache[k]) {
       personCache[k] = snapshot(128, 160, (scene) => {
-        scene.add(buildPerson(PEOPLE[idx % PEOPLE.length], expr));
+        const body = buildPerson(PEOPLE[idx % PEOPLE.length], expr);
+        body.rotation.y = yaw;
+        scene.add(body);
         const front = new THREE.DirectionalLight(0xfff4ea, 0.55);   // 顔を正面から明るく照らす
         front.position.set(0.5, 2.2, 6); scene.add(front);
       },

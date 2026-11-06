@@ -1350,9 +1350,9 @@ function render() {
     outer.slice(0, phone ? 10 : 22).forEach((c, n, arr) => {
       const ox = 14 + (arr.length > 1 ? n * span / (arr.length - 1) : span * 0.5) + (rnd(c.id, 6) - 0.5) * ow * 0.5;
       const oy = Math.round(rnd(c.id, 7) * 8);
-      const fl = rnd(c.id, 4) < 0.35 ? -1 : 1;
-      const img = Bowl3D.ok ? `<img src="${Bowl3D.person(c.look, 'normal')}" alt="">` : c.face;
-      out.push(`<span class="q-outp" style="left:${Math.round(ox)}px;bottom:${oy - 6}px;z-index:${30 - n};transform:scaleX(${fl})">${img}</span>`);
+      // 窓の外の人は、みんな店の入口のほう（画面の右）を向いて並ぶ
+      const img = Bowl3D.ok ? `<img src="${Bowl3D.person(c.look, 'normal', 1.1)}" alt="">` : c.face;
+      out.push(`<span class="q-outp" style="left:${Math.round(ox)}px;bottom:${oy - 6}px;z-index:${30 - n}">${img}</span>`);
     });
     const sign = hidden ? `<span class="q-sign">${T('外にも{0}人', hidden)}</span>` : '';
     qEl.innerHTML = `<div class="q-window"><div class="q-out">${out.join('')}</div><i class="q-glass"></i>${sign}</div>` + html.join('');
