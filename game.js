@@ -39,7 +39,7 @@ const EN = {
   '茹ですぎ！麺はゴミに': 'Overcooked! Noodles wasted',
   'そのまま': 'plain', 'を1タップ': ': tap once',
   'ピピッ！': 'Beep!', 'チャッチャッ！': 'Shake!', 'お冷': 'Water',
-  'ほか{0}人': '+{0} more', '{0}番': '#{0}',
+  'ほか{0}人': '+{0} more', '外にも{0}人': '+{0} outside', '{0}番': '#{0}',
   'rank.legend': '🏆 Legendary ramen shop', 'rank.magazine': '🥇 Featured in magazines', 'rank.local': '🥈 Local favorite',
   'rank.normal': '🥉 Ordinary ramen shop', 'rank.trainee': '🍥 Apprentice cook',
   '{0}杯': '{0} bowls', '{0}人': '{0}', '{0}個': '{0}',
@@ -1342,7 +1342,20 @@ function render() {
       html.push(`<span class="q-person${imp ? ' impatient' : ''}" style="left:${Math.round(x)}px;bottom:${dy}px;z-index:${50 - n};transform:scale(${flip * sc},${sc}) rotate(${tilt}deg);--shirt:${shirt}">${face}<i class="q-body"></i></span>`);
       x += step;
     });
-    qEl.innerHTML = html.join('') + (hidden ? `<span class="q-more">${T('ほか{0}人', hidden)}</span>` : '');
+    // 店に入りきらない人は、行列の後ろの窓の向こう（店の外）に並んで見える
+    const out = [];
+    const outer = S.queue.slice(S.queue.length - hidden);
+    const ow = pw * 0.62;
+    const span = Math.max(1, W - 40 - ow);
+    outer.slice(0, phone ? 10 : 22).forEach((c, n, arr) => {
+      const ox = 14 + (arr.length > 1 ? n * span / (arr.length - 1) : span * 0.5) + (rnd(c.id, 6) - 0.5) * ow * 0.5;
+      const oy = Math.round(rnd(c.id, 7) * 8);
+      const fl = rnd(c.id, 4) < 0.35 ? -1 : 1;
+      const img = Bowl3D.ok ? `<img src="${Bowl3D.person(c.look, 'normal')}" alt="">` : c.face;
+      out.push(`<span class="q-outp" style="left:${Math.round(ox)}px;bottom:${oy - 6}px;z-index:${30 - n};transform:scaleX(${fl})">${img}</span>`);
+    });
+    const sign = hidden ? `<span class="q-sign">${T('外にも{0}人', hidden)}</span>` : '';
+    qEl.innerHTML = `<div class="q-window"><div class="q-out">${out.join('')}</div><i class="q-glass"></i>${sign}</div>` + html.join('');
   }
 
   // 席
