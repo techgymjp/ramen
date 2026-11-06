@@ -1329,7 +1329,9 @@ function render() {
     const html = [];
     let hidden = 0;
     S.queue.forEach((c, n) => {
-      const step = pw * (0.55 + rnd(c.id, 1) * 0.5);  // 詰めて並ぶ人、少し離れる人
+      // スマホは詰めて並ぶ。WEB版は横いっぱいに、一人一人の間をあけてばらけさせる
+      const base = phone ? pw * 0.8 : Math.min(pw * 2.2, Math.max(pw * 1.05, (W - 20 - pw) / Math.max(1, S.queue.length - 1)));
+      const step = phone ? pw * (0.55 + rnd(c.id, 1) * 0.5) : base * (0.75 + rnd(c.id, 1) * 0.5);
       if (x + pw > W - 4) { hidden++; return; }
       const imp = c.qWait > c.qMax * 0.7;
       const dy = Math.round((rnd(c.id, 2) - 0.5) * 14);            // 前後（上下）のずれ
