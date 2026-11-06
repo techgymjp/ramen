@@ -609,11 +609,12 @@ function makeCustomer() {
 }
 
 function spawnInterval() {
-  // 評判と時間帯（ランチピーク）で来店ペースが変わる
+  // 評判が高いほど、お客さんが大きく増える（★3でこれまでと同じくらい、★5のピークで約1.5秒に1人）
+  // 時間帯（ランチピーク）でも来店ペースが変わる
   const progress = S.t / DAY_LEN;
-  const peak = 1 + 0.8 * Math.exp(-Math.pow((progress - 0.45) / 0.2, 2));
-  const repF = 0.5 + S.rep / 4;
-  return Math.max(2.5, 10 / (peak * repF)) * rand(0.7, 1.3);
+  const peak = 1 + 1.0 * Math.exp(-Math.pow((progress - 0.45) / 0.2, 2));
+  const repF = Math.pow(S.rep / 3, 2);
+  return Math.max(1.3, 7 / (peak * repF)) * rand(0.7, 1.3);
 }
 
 // ===================== 操作 =====================
