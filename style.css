@@ -1046,3 +1046,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 @media (max-width: 640px) {
   .seat .glass { bottom: 2px !important; width: 16px !important; height: 23px !important; left: calc(50% - 36px) !important; }
 }
+/* お客さんのコップの底を、カウンターの天板にぴったりつける */
+.seat .glass { bottom: -4px !important; }
+.seat .glass::after { content: ""; position: absolute; left: -2px; right: -2px; bottom: -2px; height: 3px; border-radius: 50%; background: rgba(0,0,0,.28); filter: blur(1px); }
+@media (max-width: 640px) { .seat .glass { bottom: -4px !important; } }
