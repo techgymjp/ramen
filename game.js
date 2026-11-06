@@ -398,6 +398,35 @@ const sfx = {
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
+  // 営業終了：拍子木「カン、カン」のあとに、締めのメロディ「ちゃんちゃかちゃん、ちゃん！」
+  closing: () => {
+    const a = getAudio(); if (!a) return;
+    try {
+      const t0 = a.currentTime;
+      const wood = (t) => {   // 拍子木
+        noiseBurst(a, t, 0.05, 0.25, 'bandpass', 2400, 1800);
+        const o = a.createOscillator(), g = a.createGain();
+        o.type = 'triangle'; o.frequency.value = 1150;
+        g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.14);
+      };
+      wood(t0); wood(t0 + 0.32);
+      const note = (f, t, d, v = 0.12) => {
+        for (const [m, type, vv] of [[1, 'square', v], [2, 'sine', v * 0.4]]) {
+          const o = a.createOscillator(), g = a.createGain();
+          o.type = type; o.frequency.value = f * m;
+          g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vv, t + 0.01);
+          g.gain.setValueAtTime(vv, t + d * 0.7); g.gain.exponentialRampToValueAtTime(0.001, t + d);
+          o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.02);
+        }
+      };
+      const s = t0 + 0.75;
+      // ド・ソ・ミ・ド　…　ド（高）
+      [[523, 0, 0.16], [392, 0.18, 0.16], [330, 0.36, 0.16], [262, 0.54, 0.3]].forEach(([f, d, l]) => note(f, s + d, l));
+      note(523, s + 0.95, 0.7, 0.14); note(659, s + 0.95, 0.7, 0.07); note(784, s + 0.95, 0.7, 0.06);
+      wood(s + 0.95);
+    } catch (e) { /* 音が出せなくても続行 */ }
+  },
   // 氷がカランコロンと鳴る音（コップを出すとき）
   ice: () => {
     const a = getAudio(); if (!a) return;
@@ -550,8 +579,9 @@ function activeBowl() {
 
 // 選択中のどんぶりがなくなったら、別のどんぶりを選ぶ
 function fixActive() {
-  if (activeBowl()) return;
-  S.active = S.bowls.findIndex((b) => b);
+  const a = activeBowl();
+  if (a && !a.serving) return;
+  S.active = S.bowls.findIndex((b) => b && !b.serving);
 }
 
 // 麺を入れる（場所の指定がなければ空いているてぼへ）
@@ -639,6 +669,7 @@ const PIECES = { chashu: 4, negi: 6 };   // 1人前で飛んでいく個数（�
 function addTopping(key) {
   const b = activeBowl();
   if (!b) { toast('どんぶりがありません'); return; }
+  if (b.serving) return;   // お客さんへ飛んでいく途中のどんぶりには、もうのせない
   if (!b.men) { toast('先に麺をどんぶりに入れよう'); return; }
   const name = TOPPINGS.find((t) => t.key === key).name;
   sfx.tap();
@@ -718,6 +749,11 @@ function autoServe(dt) {
 
 function serveFly(i, b) {
   b.serving = true;
+  // 飛び始めたら、次に作るどんぶりを選んでおく（同じ具をもう一度押してもゴミにならないように）
+  if (S.active === i) {
+    const next = S.bowls.findIndex((x) => x && !x.serving);
+    S.active = next;
+  }
   const from = bowlEls[i].wrap.getBoundingClientRect();
   const to = seatEls[i].spot.getBoundingClientRect();
   const img = Bowl3D.ok && Bowl3D.bowlImage ? Bowl3D.bowlImage(b.tops.chashu > 0, b.tops.negi > 0) : null;
@@ -858,8 +894,11 @@ function showCoin(seatIdx, text) {
   const el = document.createElement('div');
   el.className = 'coin';
   el.textContent = text;
+  // 端の席では、画面の内側に収まるように寄せる
+  if (seatIdx === 0) { el.style.left = '0'; el.style.transform = 'none'; }
+  if (seatIdx === SEAT_COUNT - 1) { el.style.left = 'auto'; el.style.right = '0'; el.style.transform = 'none'; }
   seatEls[seatIdx].root.appendChild(el);
-  setTimeout(() => el.remove(), 1200);
+  setTimeout(() => el.remove(), 1600);
 }
 
 // ===================== 更新 =====================
@@ -1039,7 +1078,7 @@ function buildUI() {
   // お品書き
   // 壁に貼った短冊メニュー（縦書き、値段は漢数字）
   $('menulist').innerHTML = Object.values(MENU).map((m) =>
-    `<div class="tanzaku"><span class="t-name">${m.name}</span><span class="t-price">${kanjiYen(m.price)}</span></div>`).join('');
+    `<div class="tanzaku"><span class="t-name">${m.name.replace('ネギチャ', 'ネギ<br>チャ')}</span><span class="t-price">${kanjiYen(m.price)}</span></div>`).join('');
 
   // 席
   const seats = $('seats');
@@ -1129,6 +1168,46 @@ function buildUI() {
   }
   waterEl.addEventListener('pointerdown', pickWater);
 }
+
+// ---------- 画面の高さに合わせて、店内と厨房の大きさを決める ----------
+// 店内（壁・カウンター）を縮めてでも、厨房（どんぶり・鍋）が画面に収まるようにする
+let fitKey = '';
+function fitLayout(force) {
+  const game = $('game'), shop = $('shop');
+  const H = window.innerHeight, W = window.innerWidth;
+  const key = W + 'x' + H;
+  if (!force && key === fitKey) return;
+  fitKey = key;
+  const phone = W <= 640;
+  // 厨房の本来の高さ（余白で引き伸ばされる前）を測る
+  const kitchenH = () => {
+    const k = $('kitchen');
+    k.style.flex = 'none'; k.style.height = 'auto';
+    const h = k.getBoundingClientRect().height;
+    k.style.flex = ''; k.style.height = '';
+    return Math.ceil(h);
+  };
+  const hudH = $('hud').getBoundingClientRect().height;
+  const MAX = phone ? 296 : 290, MIN = 150;
+  game.classList.remove('compact');
+  let avail = H - hudH - kitchenH();
+  if (avail < MIN && phone) {            // それでも足りなければ、どんぶりを横6列の1段にする
+    game.classList.add('compact');
+    avail = H - hudH - kitchenH();
+  }
+  const sh = Math.max(MIN - 30, Math.min(MAX, Math.floor(avail)));
+  game.style.setProperty('--shop-h', sh + 'px');
+  // お客さん（吹き出し込み）はカウンターから約150px。残りが壁
+  const wall = sh - 158;
+  // 壁が低いときは、短冊や貼り紙を縮めて収める（とても低いときは壁をなくす）
+  shop.classList.toggle('no-wall', wall < 44);
+  shop.style.setProperty('--wall-h', (wall < 44 ? 0 : wall) + 'px');
+  const natural = phone ? 112 : 150;   // 短冊の本来の高さ（上の余白込み）
+  shop.style.setProperty('--wall-scale', Math.min(1, Math.max(0.3, (wall - 4) / natural)).toFixed(3));
+  game.style.setProperty('--seat-h', Math.max(110, Math.min(200, sh - 34)) + 'px');
+}
+window.addEventListener('resize', () => fitLayout());
+window.addEventListener('orientationchange', () => setTimeout(() => fitLayout(true), 300));
 
 function render() {
   // HUD
@@ -1297,6 +1376,7 @@ function warmUpAudio() {
 function startGame() {
   warmUpAudio();
   newGame();
+  requestAnimationFrame(() => fitLayout(true));
   for (const e of [...seatEls, ...bowlEls]) e.key = 'x';
   $('queue').dataset.key = 'x';
   $('overlay').classList.add('hidden');
@@ -1318,6 +1398,7 @@ function endGame() {
   running = false;
   $('panel').className = 'panel';
   BGM.stop();
+  sfx.closing();   // 営業終了の音
   render();
   let best = 0;
   try {
@@ -1427,7 +1508,7 @@ document.addEventListener('keydown', (ev) => {
 // ---------- 効果音を前もって作っておく ----------
 // 音をその場で組み立てると、スマホでは鳴るまでに少し時間がかかるので、
 // ページを開いたときに効果音を録音しておき、タップした瞬間はそれを再生するだけにする
-const SFX_PRELOAD = ['pipi', 'menDrop', 'chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
+const SFX_PRELOAD = ['closing', 'pipi', 'menDrop', 'chapon', 'juwa', 'lift', 'yukiri', 'chashuLand', 'negiLand', 'ice', 'whoosh', 'bowlDown', 'thanks', 'slam', 'hot'];
 async function preloadSfx() {
   const OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
   if (!OAC) return;
@@ -1435,7 +1516,7 @@ async function preloadSfx() {
   for (const name of SFX_PRELOAD) {
     const live = sfx[name];
     try {
-      const oc = new OAC(1, Math.round(rate * 1.6), rate);
+      const oc = new OAC(1, Math.round(rate * 2.6), rate);
       offlineCtx = oc;
       live();
       offlineCtx = null;
@@ -1461,6 +1542,7 @@ async function preloadSfx() {
 
 buildUI();
 preloadSfx();
+fitLayout(true);
 showTitle();
 updateBgmBtn();
 $('bgmBtn').addEventListener('click', toggleBgm);

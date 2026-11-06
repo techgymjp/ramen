@@ -824,3 +824,56 @@ html, body { overflow-x: hidden; max-width: 100%; }
 .tebo-slot.ready .tebo { animation: readybob .6s ease-in-out infinite alternate; }
 @keyframes readybob { to { margin-top: -6px; } }
 @media (max-width: 640px) { .tebo-slot .pipi { font-size: 13px !important; top: -8px !important; } }
+
+/* ===== 画面の高さに合わせる（短いスマホでも、どんぶりやボタンが画面の外に出ないように） ===== */
+#game { height: 100vh; height: 100dvh; min-height: 0 !important; }
+#kitchen { min-height: 0; }
+#shop { height: var(--shop-h, 296px) !important; flex: 0 0 auto; }
+.seat { height: var(--seat-h, 200px) !important; }
+#shop.no-wall #wall { display: none; }
+/* どんぶりを横6列の1段にする（とても短い画面のとき） */
+#game.compact #bowlArea { grid-template-columns: repeat(6, 1fr) !important; gap: 2px 0 !important; }
+#game.compact #bowlArea .bowl-slot:nth-child(n+4) { margin-top: 0 !important; }
+#game.compact .slip { height: 22px !important; padding: 2px 1px 1px !important; }
+#game.compact .slip .no { font-size: 8px !important; }
+#game.compact .slip .nm, #game.compact .slip .nm.long { font-size: 9px !important; letter-spacing: -0.5px; }
+/* 最初の画面：短い画面では絵を小さくして、ボタンが必ず見えるように */
+@media (max-height: 720px) {
+  .top-ramen { max-height: 24vh; width: auto; }
+  .top-line img { width: 40px; height: 50px; }
+  .top-title span { font-size: 32px; }
+  .panel.top { padding-bottom: 10px; }
+}
+@media (max-height: 600px) {
+  .top-ramen { max-height: 18vh; }
+  .top-noren span { height: 34px; font-size: 16px; }
+  .top-line img { width: 32px; height: 40px; }
+  .top-title { font-size: 18px !important; }
+  .top-title span { font-size: 26px; }
+  .top-lead { margin-top: 2px; font-size: 13px; }
+  .panel .btn { padding: 8px 24px; margin-top: 8px; }
+}
+
+/* 売上の金額：濃い色に白いふちで読みやすく */
+.coin {
+  color: #8a1a00 !important; font-size: 16px !important; font-weight: 900;
+  text-shadow: -2px 0 #fff, 2px 0 #fff, 0 -2px #fff, 0 2px #fff, -1px -1px #fff, 1px 1px #fff, -1px 1px #fff, 1px -1px #fff, 0 2px 4px rgba(0,0,0,.4) !important;
+  z-index: 6;
+}
+@media (max-width: 640px) { .coin { font-size: 13px !important; } }
+#wall, #shop::before { height: var(--wall-h, 46%) !important; }
+/* 壁が低いときは、短冊・貼り紙・時計などを縮める */
+#wall > * { transform-origin: 0 0; }
+#menulist { transform: scale(var(--wall-scale, 1)); transform-origin: 0 0; }
+.harigami, .himekuri { transform: scale(var(--wall-scale, 1)) rotate(2deg); transform-origin: 100% 0; }
+.wall-clock { transform: scale(var(--wall-scale, 1)); transform-origin: 0 0; }
+.menu-rail { top: calc(8px * var(--wall-scale, 1)); }
+/* スマホの短冊：行末で1文字だけ次の列に送られないよう、少し小さく・長く */
+@media (max-width: 640px) {
+  .t-name { font-size: 10px !important; height: 86px !important; line-height: 1.05; letter-spacing: -0.3px; }
+}
+/* PCの短冊も、長い名前が途中で次の列に送られないように */
+@media (min-width: 641px) { .t-name { height: 132px !important; font-size: 12px !important; line-height: 1.05; letter-spacing: -0.5px; } }
+/* 金額は、お客さんの顔のあたりに出して、上へ浮かびながら消える（スクショでも読める濃さで） */
+.coin { top: auto !important; bottom: 70px; animation: coinup 1.6s ease-out forwards !important; }
+@keyframes coinup { 0% { opacity: 0; translate: 0 10px; } 12% { opacity: 1; translate: 0 0; } 75% { opacity: 1; } 100% { opacity: 0; translate: 0 -34px; } }
