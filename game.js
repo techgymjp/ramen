@@ -626,13 +626,21 @@ function makeCustomer() {
   };
 }
 
-function spawnInterval() {
-  // 評判が高いほど、お客さんが大きく増える（★3でこれまでと同じくらい、★5のピークで約1.5秒に1人）
-  // 時間帯（ランチピーク）でも来店ペースが変わる
+// 来店の間隔（ばらつきなし）。評判が高いほどお客さんが大きく増える
+// （★3でこれまでと同じくらい、★5のピークで約1.5秒に1人）。時間帯（ランチピーク）でも変わる。
+// 評判が低くても、ふだん最長12秒・ピーク最長8秒で来るようにして、立て直せるようにする
+function baseSpawnInterval() {
   const progress = S.t / DAY_LEN;
-  const peak = 1 + 1.0 * Math.exp(-Math.pow((progress - 0.45) / 0.2, 2));
+  const pk = Math.exp(-Math.pow((progress - 0.45) / 0.2, 2));   // 0〜1（1 がピーク）
   const repF = Math.pow(S.rep / 3, 2);
-  return Math.max(1.3, 7 / (peak * repF)) * rand(0.7, 1.3);
+  const cap = 12 - 4 * pk;
+  return Math.min(cap, Math.max(1.3, 7 / ((1 + pk) * repF)));
+}
+function spawnInterval() {
+  const r = rand(0.7, 1.3);
+  S.spawnR = r;
+  S.spawnBase = baseSpawnInterval();
+  return S.spawnBase * r;
 }
 
 // ===================== 操作 =====================
@@ -1009,6 +1017,9 @@ function update(dt) {
 
   // 来店
   if (S.t < DAY_LEN) {
+    // 評判が上がったり、ピークに入ったりして来店の間隔が短くなったら、次のお客さんの来るタイミングも早め直す
+    const nb = baseSpawnInterval();
+    if (S.spawnBase && nb < S.spawnBase) { S.spawnT *= nb / S.spawnBase; S.spawnBase = nb; }
     S.spawnT -= dt;
     if (S.spawnT <= 0) {
       S.queue.push(makeCustomer());
