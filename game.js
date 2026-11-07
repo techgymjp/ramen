@@ -1118,7 +1118,7 @@ function update(dt) {
         c.react = T('もう帰る！💢'); c.reactCls = 'bad';
         S.rep -= 0.3; S.angry++;
         sfx.angry();
-        offerRecall(c);
+        offerRecall(c, i);
       }
     } else {
       c.timer -= dt;
@@ -1826,9 +1826,20 @@ function setBanner(on) {
 // いちばん悔しい失敗（待たせすぎて怒って帰られる）を取り返せる。広告を最後まで見たときだけ、
 // そのお客さんの評判の減点と「怒って帰った客」を取り消して、行列の先頭に戻ってもらう（1 回の営業で 3 回まで）
 let recall = null;   // { c, showAt, hideAt }
-function offerRecall(c) {
+function offerRecall(c, seat) {
   if (!window.Ads || !Ads.canReward || S.recalls >= RECALL_MAX) return;
-  recall = { c, showAt: S.t + 2.5, hideAt: S.t + 8.5 };   // 帰っていく様子を見届けてから出し、少しで消える
+  recall = { c, seat, showAt: S.t + 2.5, hideAt: S.t + 8.5, enableAt: 0 };   // 帰っていく様子を見届けてから出し、少しで消える
+}
+// 「呼び戻す」ボタンは、よくタップする厨房ではなく、帰ったお客さんの席の上（カウンターの上）に出す
+function placeRecall(el, seat) {
+  const shop = $('shop'), s = seatEls[seat] && seatEls[seat].root;
+  if (!s) return;
+  if (el.parentNode !== shop) shop.appendChild(el);
+  const sr = shop.getBoundingClientRect(), r = s.getBoundingClientRect();
+  const w = el.offsetWidth || 200;
+  const cx = r.left - sr.left + r.width / 2;
+  el.style.left = Math.round(Math.max(4, Math.min(sr.width - w - 4, cx - w / 2))) + 'px';
+  el.style.top = Math.round(Math.max(4, r.top - sr.top + r.height * 0.35)) + 'px';
 }
 function hideRecall() { const el = $('recallBtn'); if (el) el.hidden = true; }
 function updateRecall() {
@@ -1836,11 +1847,20 @@ function updateRecall() {
   if (!el) return;
   if (recall && S.t >= recall.hideAt) recall = null;
   const show = !!recall && S.t >= recall.showAt && running && !paused;
-  if (show) el.textContent = T('📺 広告を見て呼び戻す（あと{0}回）', RECALL_MAX - S.recalls);
-  el.hidden = !show;
+  if (show) {
+    const wasHidden = el.hidden;
+    el.textContent = T('📺 広告を見て呼び戻す（あと{0}回）', RECALL_MAX - S.recalls);
+    el.hidden = false;
+    if (wasHidden) recall.enableAt = performance.now() + 600;   // 出てから0.6秒は押せない（連打でうっかり押さないように）
+    el.classList.toggle('locked', performance.now() < recall.enableAt);
+    placeRecall(el, recall.seat);
+  } else {
+    el.hidden = true;
+  }
 }
 async function useRecall() {
   if (!recall || adBusy) return;
+  if (!recall.enableAt || performance.now() < recall.enableAt) return;   // 出たばかりのタップは無視
   const r = recall;
   recall = null;
   hideRecall();

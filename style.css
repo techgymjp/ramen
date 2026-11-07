@@ -1071,3 +1071,8 @@ html, body { overflow-x: hidden; max-width: 100%; }
 /* タップを素早く受け付ける（ダブルタップの拡大や、押したときの青い枠・長押しメニューを出さない） */
 button, .seat, .bowl-slot, .tebo-slot, .pot, .bin, #cups, #cups img, .ing { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 img { -webkit-user-drag: none; -webkit-touch-callout: none; }
+
+/* 「呼び戻す」ボタンは、帰ったお客さんの席の上に出す（位置は game.js で決める） */
+#recallBtn { left: 0; top: 0; transform: none !important; z-index: 70 !important; animation: recallPop .3s ease-out !important; }
+#recallBtn.locked { opacity: .55; }
+@keyframes recallPop { from { transform: translateY(-6px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
