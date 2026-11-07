@@ -14,7 +14,7 @@ window.Ads = (() => {
       // 本番の広告ユニット（AdMob の Android アプリ「行列のできるラーメン店」）。
       // 届いたら入れる。空の種類は本番ビルド（Google Play 用）では出さない
       production: {
-        interstitial: '',
+        interstitial: 'ca-app-pub-6411535997477460/2503994852',
         rewarded: '',
         banner: 'ca-app-pub-6411535997477460/3328148058',
       },
