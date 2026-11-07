@@ -57,7 +57,7 @@ const BGM = (() => {
     ctx = audioCtx;
     master = ctx.createGain();
     master.gain.value = BGM_VOL;
-    master.connect(ctx.destination);
+    master.connect(window.sfxOut ? window.sfxOut(ctx) : ctx.destination);   // 効果音と同じリミッターを通す
     // エコー（歌謡曲らしい残響）
     echoIn = ctx.createGain();
     const delay = ctx.createDelay(1);

@@ -639,7 +639,8 @@ const Bowl3D = (() => {
     } catch (e) {
       return null;
     }
-    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+    // スマホは描く細かさを少し下げて、タップへの反応を軽くする
+    renderer.setPixelRatio(Math.min(window.innerWidth <= 640 ? 1.5 : 2, window.devicePixelRatio || 1));
     renderer.setClearColor(0x000000, 0);
     renderer.autoClear = false;
     if ('outputEncoding' in renderer) renderer.outputEncoding = THREE.sRGBEncoding;

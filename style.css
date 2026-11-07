@@ -1067,3 +1067,7 @@ html, body { overflow-x: hidden; max-width: 100%; }
 @media (min-width: 641px) { .posters { left: 52%; right: 26%; } }
 /* お客さんに出したラーメン（3D）を、お客さんより手前に描く */
 .counter3d { z-index: 5 !important; }
+
+/* タップを素早く受け付ける（ダブルタップの拡大や、押したときの青い枠・長押しメニューを出さない） */
+button, .seat, .bowl-slot, .tebo-slot, .pot, .bin, #cups, #cups img, .ing { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+img { -webkit-user-drag: none; -webkit-touch-callout: none; }

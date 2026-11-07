@@ -198,6 +198,38 @@ function toast(msg) {
 // ---------- 効果音 ----------
 let actx = null;
 let sfxNoise = null;
+// 効果音の出口：音量をそろえるリミッター（コンプレッサー）を通して、重なっても音割れしないようにする
+let sfxBus = null;
+function sfxOut(a) {
+  if (a !== actx) return a.destination;   // 録音（前もって作る）ときは、そのまま
+  if (!sfxBus) {
+    const g = a.createGain(); g.gain.value = 0.85;
+    const c = a.createDynamicsCompressor();
+    c.threshold.value = -12; c.knee.value = 6; c.ratio.value = 12; c.attack.value = 0.002; c.release.value = 0.12;
+    g.connect(c); c.connect(a.destination);
+    sfxBus = g;
+  }
+  return sfxBus;
+}
+window.sfxOut = sfxOut;
+// 同時に鳴らす音の数と、同じ音の連続を制限する（連打しても重くならない・音割れしない）
+const MAX_VOICES = 14;
+let voices = 0;
+const lastPlay = {};
+function allowSound(name, gapMs = 45) {
+  const now = performance.now();
+  if (voices >= MAX_VOICES) return false;
+  if (name && lastPlay[name] && now - lastPlay[name] < gapMs) return false;
+  if (name) lastPlay[name] = now;
+  return true;
+}
+function trackVoice(node, sec) {
+  voices++;
+  let done = false;
+  const end = () => { if (!done) { done = true; voices = Math.max(0, voices - 1); } };
+  if (node) node.onended = end;
+  setTimeout(end, (sec || 1) * 1000 + 200);
+}
 // ノイズで水の音を作る（フィルターの周波数を f0 → f1 に動かす）
 function noiseBurst(a, t, dur, vol, type, f0, f1) {
   if (!sfxNoise) {
@@ -211,7 +243,7 @@ function noiseBurst(a, t, dur, vol, type, f0, f1) {
   const g = a.createGain();
   g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008);
   g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  src.connect(f); f.connect(g); g.connect(a.destination);
+  src.connect(f); f.connect(g); g.connect(sfxOut(a));
   src.start(t); src.stop(t + dur + 0.02);
 }
 let offlineCtx = null;   // 効果音を前もって録音するときの入れもの
@@ -245,13 +277,15 @@ function toggleBgm() {
 function beep(freq, dur = 0.08, type = 'square', vol = 0.05) {
   try {
     getAudio();
+    if (!actx || voices >= MAX_VOICES) return;
     const o = actx.createOscillator();
     const g = actx.createGain();
     o.type = type; o.frequency.value = freq;
     g.gain.value = vol;
     g.gain.exponentialRampToValueAtTime(0.0001, actx.currentTime + dur);
-    o.connect(g); g.connect(actx.destination);
+    o.connect(g); g.connect(sfxOut(actx));
     o.start(); o.stop(actx.currentTime + dur);
+    trackVoice(o, dur);
   } catch (e) { /* 音が出せなくても続行 */ }
 }
 const sfx = {
@@ -268,7 +302,7 @@ const sfx = {
           o.type = type; o.frequency.value = f;
           g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(v, t + 0.004);
           g.gain.setValueAtTime(v, t + 0.07); g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
-          o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.11);
+          o.connect(g); g.connect(sfxOut(a)); o.start(t); o.stop(t + 0.11);
         }
       });
     } catch (e) { /* 音が出せなくても続行 */ }
@@ -290,13 +324,13 @@ const sfx = {
         const gn = a.createGain();
         gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(vol, t + 0.006);
         gn.gain.exponentialRampToValueAtTime(0.001, t + 0.11);
-        src.connect(bp); bp.connect(gn); gn.connect(a.destination);
+        src.connect(bp); bp.connect(gn); gn.connect(sfxOut(a));
         src.start(t); src.stop(t + 0.13);
         // 「パッ」の破裂感
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(320, t); o.frequency.exponentialRampToValueAtTime(110, t + 0.05);
         og.gain.setValueAtTime(vol * 0.9, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
-        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.07);
+        o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.07);
       };
       const t0 = a.currentTime;
       splash(t0, 0.35);
@@ -327,7 +361,7 @@ const sfx = {
       const lfo = a.createOscillator(), lg = a.createGain();
       lfo.frequency.value = 38; lg.gain.value = 0.08;
       lfo.connect(lg); lg.connect(gn.gain);
-      src.connect(bp); bp.connect(gn); gn.connect(a.destination);
+      src.connect(bp); bp.connect(gn); gn.connect(sfxOut(a));
       src.start(t0); src.stop(t0 + dur + 0.05); lfo.start(t0); lfo.stop(t0 + dur + 0.05);
       // 泡がはじける小さな音
       for (let k = 0; k < 7; k++) {
@@ -335,7 +369,7 @@ const sfx = {
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(900 + Math.random() * 900, t); o.frequency.exponentialRampToValueAtTime(400, t + 0.03);
         og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.05);
+        o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.05);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -354,7 +388,7 @@ const sfx = {
       o.type = 'sine'; o.frequency.setValueAtTime(260, t0); o.frequency.exponentialRampToValueAtTime(720, t0 + 0.09);
       og.gain.setValueAtTime(0.0001, t0); og.gain.linearRampToValueAtTime(0.32, t0 + 0.01);
       og.gain.exponentialRampToValueAtTime(0.001, t0 + 0.16);
-      o.connect(og); og.connect(a.destination); o.start(t0); o.stop(t0 + 0.18);
+      o.connect(og); og.connect(sfxOut(a)); o.start(t0); o.stop(t0 + 0.18);
       // ザブッ：水しぶき
       const src = a.createBufferSource(); src.buffer = sfxNoise;
       const lp = a.createBiquadFilter(); lp.type = 'lowpass';
@@ -362,14 +396,14 @@ const sfx = {
       const ng = a.createGain();
       ng.gain.setValueAtTime(0.0001, t0); ng.gain.linearRampToValueAtTime(0.25, t0 + 0.01);
       ng.gain.exponentialRampToValueAtTime(0.001, t0 + 0.28);
-      src.connect(lp); lp.connect(ng); ng.connect(a.destination); src.start(t0); src.stop(t0 + 0.3);
+      src.connect(lp); lp.connect(ng); ng.connect(sfxOut(a)); src.start(t0); src.stop(t0 + 0.3);
       // ぐつぐつ：小さな泡の音
       for (let k = 0; k < 6; k++) {
         const t = t0 + 0.15 + k * 0.07 + Math.random() * 0.04;
         const b = a.createOscillator(), bg = a.createGain();
         b.type = 'sine'; b.frequency.setValueAtTime(380 + Math.random() * 260, t); b.frequency.exponentialRampToValueAtTime(900, t + 0.04);
         bg.gain.setValueAtTime(0.07, t); bg.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-        b.connect(bg); bg.connect(a.destination); b.start(t); b.stop(t + 0.06);
+        b.connect(bg); bg.connect(sfxOut(a)); b.start(t); b.stop(t + 0.06);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -392,14 +426,14 @@ const sfx = {
         const o = a.createOscillator(), og = a.createGain();   // 「チャッ」のアタック
         o.type = 'triangle'; o.frequency.setValueAtTime(420, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.05);
         og.gain.setValueAtTime(v * 0.7, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
-        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.08);
+        o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.08);
       });
       for (let k = 0; k < 4; k++) {   // ぽたぽた
         const t = t0 + 0.45 + k * 0.08;
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'sine'; o.frequency.setValueAtTime(1200 + k * 150, t); o.frequency.exponentialRampToValueAtTime(2200, t + 0.03);
         og.gain.setValueAtTime(0.05, t); og.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-        o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.05);
+        o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.05);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -412,7 +446,7 @@ const sfx = {
       o.type = 'sine'; o.frequency.setValueAtTime(190 - k * 10, t); o.frequency.exponentialRampToValueAtTime(75, t + 0.12);
       og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.38, t + 0.006);
       og.gain.exponentialRampToValueAtTime(0.001, t + 0.16);
-      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.18);
+      o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.18);
       noiseBurst(a, t, 0.12, 0.12, 'bandpass', 1600, 500);   // ぴちゃ
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -427,7 +461,7 @@ const sfx = {
         const o = a.createOscillator(), og = a.createGain();
         o.type = 'triangle'; o.frequency.value = 1800 + Math.random() * 1400;
         og.gain.setValueAtTime(0.05, tt); og.gain.exponentialRampToValueAtTime(0.001, tt + 0.03);
-        o.connect(og); og.connect(a.destination); o.start(tt); o.stop(tt + 0.04);
+        o.connect(og); og.connect(sfxOut(a)); o.start(tt); o.stop(tt + 0.04);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -445,12 +479,12 @@ const sfx = {
       o.type = 'sine'; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.1);
       og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.45, t + 0.004);
       og.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.2);
+      o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.2);
       for (const [f, v, d] of [[1180, 0.07, 0.25], [2650, 0.04, 0.18]]) {   // 陶器の「コン」
         const r = a.createOscillator(), rg = a.createGain();
         r.type = 'sine'; r.frequency.value = f;
         rg.gain.setValueAtTime(v, t); rg.gain.exponentialRampToValueAtTime(0.001, t + d);
-        r.connect(rg); rg.connect(a.destination); r.start(t); r.stop(t + d + 0.02);
+        r.connect(rg); rg.connect(sfxOut(a)); r.start(t); r.stop(t + d + 0.02);
       }
       noiseBurst(a, t, 0.06, 0.12, 'lowpass', 2000, 600);
     } catch (e) { /* 音が出せなくても続行 */ }
@@ -465,7 +499,7 @@ const sfx = {
         o.type = 'triangle'; o.frequency.value = f;
         og.gain.setValueAtTime(0.0001, t + d); og.gain.linearRampToValueAtTime(0.13, t + d + 0.01);
         og.gain.exponentialRampToValueAtTime(0.001, t + d + 0.35);
-        o.connect(og); og.connect(a.destination); o.start(t + d); o.stop(t + d + 0.4);
+        o.connect(og); og.connect(sfxOut(a)); o.start(t + d); o.stop(t + d + 0.4);
       });
       for (let k = 0; k < 7; k++) noiseBurst(a, t + 0.3 + k * 0.045, 0.05, 0.07, 'bandpass', 900, 600);   // ガラガラ
     } catch (e) { /* 音が出せなくても続行 */ }
@@ -480,7 +514,7 @@ const sfx = {
       const o = a.createOscillator(), og = a.createGain();
       o.type = 'sine'; o.frequency.setValueAtTime(120, t + 0.14); o.frequency.exponentialRampToValueAtTime(60, t + 0.3);
       og.gain.setValueAtTime(0.4, t + 0.14); og.gain.exponentialRampToValueAtTime(0.001, t + 0.32);
-      o.connect(og); og.connect(a.destination); o.start(t + 0.14); o.stop(t + 0.34);
+      o.connect(og); og.connect(sfxOut(a)); o.start(t + 0.14); o.stop(t + 0.34);
     } catch (e) { /* 音が出せなくても続行 */ }
   },
   // 麺をどんぶりのスープに入れる「ジャボッ」：麺がスープに沈む重い水音
@@ -493,13 +527,13 @@ const sfx = {
       o.type = 'sine'; o.frequency.setValueAtTime(180, t); o.frequency.exponentialRampToValueAtTime(90, t + 0.12);
       og.gain.setValueAtTime(0.0001, t); og.gain.linearRampToValueAtTime(0.35, t + 0.005);
       og.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-      o.connect(og); og.connect(a.destination); o.start(t); o.stop(t + 0.2);
+      o.connect(og); og.connect(sfxOut(a)); o.start(t); o.stop(t + 0.2);
       for (let k = 0; k < 3; k++) {                                  // ちゃぷっ
         const tt = t + 0.1 + k * 0.06;
         const b = a.createOscillator(), bg = a.createGain();
         b.type = 'sine'; b.frequency.setValueAtTime(500 + k * 120, tt); b.frequency.exponentialRampToValueAtTime(1100, tt + 0.04);
         bg.gain.setValueAtTime(0.08, tt); bg.gain.exponentialRampToValueAtTime(0.001, tt + 0.05);
-        b.connect(bg); bg.connect(a.destination); b.start(tt); b.stop(tt + 0.06);
+        b.connect(bg); bg.connect(sfxOut(a)); b.start(tt); b.stop(tt + 0.06);
       }
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -513,7 +547,7 @@ const sfx = {
         const o = a.createOscillator(), g = a.createGain();
         o.type = 'triangle'; o.frequency.value = 1150;
         g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
-        o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + 0.14);
+        o.connect(g); g.connect(sfxOut(a)); o.start(t); o.stop(t + 0.14);
       };
       wood(t0); wood(t0 + 0.32);
       const note = (f, t, d, v = 0.12) => {
@@ -522,7 +556,7 @@ const sfx = {
           o.type = type; o.frequency.value = f * m;
           g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vv, t + 0.01);
           g.gain.setValueAtTime(vv, t + d * 0.7); g.gain.exponentialRampToValueAtTime(0.001, t + d);
-          o.connect(g); g.connect(a.destination); o.start(t); o.stop(t + d + 0.02);
+          o.connect(g); g.connect(sfxOut(a)); o.start(t); o.stop(t + d + 0.02);
         }
       };
       const s = t0 + 0.75;
@@ -542,7 +576,7 @@ const sfx = {
           o.type = 'sine'; o.frequency.value = f * m;
           gn.gain.setValueAtTime(0.0001, t); gn.gain.linearRampToValueAtTime(vol * v, t + 0.003);
           gn.gain.exponentialRampToValueAtTime(0.0001, t + 0.25 / m + 0.08);
-          o.connect(gn); gn.connect(a.destination); o.start(t); o.stop(t + 0.4);
+          o.connect(gn); gn.connect(sfxOut(a)); o.start(t); o.stop(t + 0.4);
         }
       };
       const t0 = a.currentTime;
@@ -585,7 +619,7 @@ const sfx = {
       const o = a.createOscillator(), gn = a.createGain();
       o.type = 'sine'; o.frequency.setValueAtTime(600, a.currentTime); o.frequency.exponentialRampToValueAtTime(1500, a.currentTime + 0.15);
       gn.gain.setValueAtTime(0.07, a.currentTime); gn.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.2);
-      o.connect(gn); gn.connect(a.destination); o.start(); o.stop(a.currentTime + 0.22);
+      o.connect(gn); gn.connect(sfxOut(a)); o.start(); o.stop(a.currentTime + 0.22);
     } catch (e) { /* 音が出せなくても続行 */ }
   },
   // お水おかわり：ぽこぽこ
@@ -600,6 +634,12 @@ const sfx = {
     setTimeout(() => { beep(2093, 0.08, 'square', 0.025); setTimeout(() => beep(2637, 0.18, 'square', 0.025), 70); }, delay);
   },
 };
+
+// 同じ効果音を、ごく短い間に何度も重ねて鳴らさない（連打での音割れ・重さを防ぐ）
+for (const k of Object.keys(sfx)) {
+  const f = sfx[k];
+  sfx[k] = (...args) => { if (offlineCtx || allowSound(k)) f(...args); };
+}
 
 // ===================== 客 =====================
 function makeCustomer() {
@@ -1490,9 +1530,13 @@ function exprOf(c) {
   return r > 0.5 ? 'normal' : r > 0.25 ? 'wait' : 'angry';
 }
 
+let last3D = 0;
 function render3D() {
   if (!Bowl3D.ok) return;
   const now = performance.now();
+  // スマホでは 3D を 1 秒に 30 回までにして、タップの処理を先に回す
+  if (window.innerWidth <= 640 && now - last3D < 30) return;
+  last3D = now;
   Bowl3D.draw(S.bowls.map((b) => (b && b.serving ? null : b)), bowlEls.map((e) => e.wrap), now);
   // お客さんに出したラーメン（熱くて待っている／食べている）
   Bowl3D.drawCounter(S.seats.map((c, i) => {
@@ -1526,7 +1570,7 @@ function warmUpAudio() {
       for (let k = 0; k < d.length; k++) d[k] = Math.random() * 2 - 1;
     }
     const o = a.createOscillator(), g = a.createGain();   // 無音を一瞬鳴らして出力を起こしておく
-    g.gain.value = 0; o.connect(g); g.connect(a.destination); o.start(); o.stop(a.currentTime + 0.05);
+    g.gain.value = 0; o.connect(g); g.connect(sfxOut(a)); o.start(); o.stop(a.currentTime + 0.05);
   } catch (e) { /* 音が出せなくても続行 */ }
 }
 
@@ -1877,10 +1921,12 @@ async function preloadSfx() {
       out.copyToChannel(d.subarray(0, end + 1), 0);
       sfx[name] = () => {
         const a = getAudio(); if (!a) return;
+        if (!allowSound(name)) return;
         try {
           const s = a.createBufferSource(); s.buffer = out;
-          s.connect(a.destination); s.start();
-        } catch (e) { live(); }
+          s.connect(sfxOut(a)); s.start();
+          trackVoice(s, out.duration);
+        } catch (e) { /* 鳴らせなくても続行 */ }
       };
     } catch (e) {
       offlineCtx = null;   // 録音できない環境では、その場で作る音のまま
