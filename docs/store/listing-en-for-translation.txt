@@ -1,0 +1,44 @@
+The Ramen Shop with a Line - English source text for machine translation (Google Play store listing)
+
+This version uses short, plain sentences without idioms or slang, so that automatic translation
+into other languages stays accurate. Keep the words "ramen", "chashu" and "negi" untranslated.
+
+[App name] (max 30 characters)
+The Ramen Shop with a Line
+
+[Short description] (max 80 characters)
+Cook ramen as ordered. Serve it fast. Good ramen makes a long line.
+
+[Full description] (max 4000 characters)
+You run a small ramen shop in old Japan. Customers sit at a counter with six seats. Cook each bowl as the customer ordered. Serve it fast. Then your rating goes up, and more customers wait in line. Try to earn as much money as you can before the shop closes.
+
+■ FOUR KINDS OF RAMEN
+• Ramen, Chashu Ramen, Negi Ramen and Negi Chashu Ramen.
+• Look at the order on the counter. Cook the same ramen.
+• If the ramen is wrong, or the noodles cook too long, you must throw it away.
+
+■ HOW TO COOK
+• Put noodles into the boiler. You can cook six at the same time.
+• Tap a bowl to put soup in it.
+• When the boiler beeps, tap the noodles. They go into the bowl.
+• Tap the chashu (pork) or the negi (green onion). It goes into the bowl.
+• When the ramen is ready, it goes to the customer.
+
+■ GIVE WATER
+• The ramen is hot. Customers do not eat without water.
+• When a glass is empty, tap it to fill it again.
+
+■ A GOOD RATING MAKES A LONG LINE
+• Fast and good ramen makes your rating go up.
+• More customers come. The line goes outside the window.
+• If customers wait too long, they get angry and leave.
+
+■ 3D GRAPHICS
+• The ramen, the soup and the customers are in 3D.
+• The game has music and sound effects.
+
+■ MORE
+• You get a title at the end of the day.
+• The game saves your best profit. You can share your result.
+• Japanese and English.
+• This game has ads.
