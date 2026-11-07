@@ -54,7 +54,8 @@ const EN = {
   'ほか{0}人': '+{0} more', '外にも{0}人': '+{0} outside', '{0}番': '#{0}',
   '一時停止': 'Paused', '再開': 'Resume', '呼び戻し': 'Called back', '{0}回': '{0}',
   'プライバシーポリシー': 'Privacy policy', '広告の設定': 'Ad settings',
-  '📺 広告を見て呼び戻す（あと{0}回）': '📺 Watch an ad to call them back ({0} left)',
+  '📺 広告を見て呼び戻す': '📺 Watch an ad to call them back',
+  '怒って帰ったお客さんが戻ってきます（あと{0}回）': 'The angry customer comes back ({0} left)',
   'お客さんが戻ってきてくれた！': 'The customer came back!',
   'rank.legend': '🏆 Legendary ramen shop', 'rank.magazine': '🥇 Featured in magazines', 'rank.local': '🥈 Local favorite',
   'rank.normal': '🥉 Ordinary ramen shop', 'rank.trainee': '🍥 Apprentice cook',
@@ -543,14 +544,14 @@ const sfx = {
     try {
       const t0 = a.currentTime;
       const wood = (t) => {   // 拍子木
-        noiseBurst(a, t, 0.05, 0.25, 'bandpass', 2400, 1800);
+        noiseBurst(a, t, 0.05, 0.1, 'bandpass', 2400, 1800);
         const o = a.createOscillator(), g = a.createGain();
         o.type = 'triangle'; o.frequency.value = 1150;
-        g.gain.setValueAtTime(0.3, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+        g.gain.setValueAtTime(0.12, t); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
         o.connect(g); g.connect(sfxOut(a)); o.start(t); o.stop(t + 0.14);
       };
       wood(t0); wood(t0 + 0.32);
-      const note = (f, t, d, v = 0.12) => {
+      const note = (f, t, d, v = 0.05) => {
         for (const [m, type, vv] of [[1, 'square', v], [2, 'sine', v * 0.4]]) {
           const o = a.createOscillator(), g = a.createGain();
           o.type = type; o.frequency.value = f * m;
@@ -562,7 +563,7 @@ const sfx = {
       const s = t0 + 0.75;
       // ド・ソ・ミ・ド　…　ド（高）
       [[523, 0, 0.16], [392, 0.18, 0.16], [330, 0.36, 0.16], [262, 0.54, 0.3]].forEach(([f, d, l]) => note(f, s + d, l));
-      note(523, s + 0.95, 0.7, 0.14); note(659, s + 0.95, 0.7, 0.07); note(784, s + 0.95, 0.7, 0.06);
+      note(523, s + 0.95, 0.7, 0.06); note(659, s + 0.95, 0.7, 0.03); note(784, s + 0.95, 0.7, 0.025);
       wood(s + 0.95);
     } catch (e) { /* 音が出せなくても続行 */ }
   },
@@ -1830,16 +1831,16 @@ function offerRecall(c, seat) {
   if (!window.Ads || !Ads.canReward || S.recalls >= RECALL_MAX) return;
   recall = { c, seat, showAt: S.t + 2.5, hideAt: S.t + 8.5, enableAt: 0 };   // 帰っていく様子を見届けてから出し、少しで消える
 }
-// 「呼び戻す」ボタンは、よくタップする厨房ではなく、帰ったお客さんの席の上（カウンターの上）に出す
-function placeRecall(el, seat) {
-  const shop = $('shop'), s = seatEls[seat] && seatEls[seat].root;
-  if (!s) return;
+// 「呼び戻す」ボタンは、よくタップする厨房ではなく、店のガラス窓の位置に大きく、いちばん手前に出す
+function placeRecall(el) {
+  const shop = $('shop'), win = document.querySelector('#queue .q-window');
   if (el.parentNode !== shop) shop.appendChild(el);
-  const sr = shop.getBoundingClientRect(), r = s.getBoundingClientRect();
-  const w = el.offsetWidth || 200;
-  const cx = r.left - sr.left + r.width / 2;
-  el.style.left = Math.round(Math.max(4, Math.min(sr.width - w - 4, cx - w / 2))) + 'px';
-  el.style.top = Math.round(Math.max(4, r.top - sr.top + r.height * 0.35)) + 'px';
+  const sr = shop.getBoundingClientRect();
+  const r = win ? win.getBoundingClientRect() : { left: sr.left + 8, top: sr.top + 60, width: sr.width - 16, height: 80 };
+  el.style.left = Math.round(r.left - sr.left) + 'px';
+  el.style.top = Math.round(r.top - sr.top) + 'px';
+  el.style.width = Math.round(r.width) + 'px';
+  el.style.height = Math.round(Math.max(56, r.height)) + 'px';
 }
 function hideRecall() { const el = $('recallBtn'); if (el) el.hidden = true; }
 function updateRecall() {
@@ -1849,11 +1850,11 @@ function updateRecall() {
   const show = !!recall && S.t >= recall.showAt && running && !paused;
   if (show) {
     const wasHidden = el.hidden;
-    el.textContent = T('📺 広告を見て呼び戻す（あと{0}回）', RECALL_MAX - S.recalls);
+    el.innerHTML = `<b>${T('📺 広告を見て呼び戻す')}</b><small>${T('怒って帰ったお客さんが戻ってきます（あと{0}回）', RECALL_MAX - S.recalls)}</small>`;
     el.hidden = false;
     if (wasHidden) recall.enableAt = performance.now() + 600;   // 出てから0.6秒は押せない（連打でうっかり押さないように）
     el.classList.toggle('locked', performance.now() < recall.enableAt);
-    placeRecall(el, recall.seat);
+    placeRecall(el);
   } else {
     el.hidden = true;
   }

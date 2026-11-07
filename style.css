@@ -1076,3 +1076,15 @@ img { -webkit-user-drag: none; -webkit-touch-callout: none; }
 #recallBtn { left: 0; top: 0; transform: none !important; z-index: 70 !important; animation: recallPop .3s ease-out !important; }
 #recallBtn.locked { opacity: .55; }
 @keyframes recallPop { from { transform: translateY(-6px) scale(.9); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* 「呼び戻す」ボタン：ガラス窓の位置に大きく、行列・お客さん・吹き出しより手前に出す */
+#recallBtn {
+  z-index: 200 !important; border-radius: 10px !important; padding: 6px 10px !important;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: linear-gradient(#2aa5f5, #1677d0) !important; border: 3px solid #fff !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,.45) !important; white-space: normal !important; text-align: center;
+}
+#recallBtn[hidden] { display: none !important; }
+#recallBtn b { font-size: 24px; line-height: 1.15; letter-spacing: 1px; }
+#recallBtn small { font-size: 13px; font-weight: bold; opacity: .95; }
+@media (max-width: 640px) { #recallBtn b { font-size: 20px !important; } #recallBtn small { font-size: 11px; } }
