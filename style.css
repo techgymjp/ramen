@@ -1088,3 +1088,6 @@ img { -webkit-user-drag: none; -webkit-touch-callout: none; }
 #recallBtn b { font-size: 24px; line-height: 1.15; letter-spacing: 1px; }
 #recallBtn small { font-size: 13px; font-weight: bold; opacity: .95; }
 @media (max-width: 640px) { #recallBtn b { font-size: 20px !important; } #recallBtn small { font-size: 11px; } }
+/* Web 版だけ：Google Play のアプリへのリンク */
+.store-link { display: block; margin: 10px auto 0; width: fit-content; padding: 6px 14px; border-radius: 999px; background: #2d6a3e; color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; }
+.store-link:hover { background: #24572f; }

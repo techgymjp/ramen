@@ -68,13 +68,14 @@ const EN = {
   '結果をコピーしました。SNSに貼り付けてシェアしてね': 'Result copied — paste it to share!',
   'top.small': 'The ramen shop', 'top.big': 'with a Line',
   'top.lead': 'Make ramen exactly as ordered and serve the line!',
+  'store.android': 'Android app (Google Play)',
   '開店！': 'Open shop!', '遊び方': 'How to play', 'もどる': 'Back', '行列': 'Line',
   '冷やし中華はじめました': 'Cold noodles<br>now served',
 };
 // 日本語の文をそのまま鍵にして英語に訳す（{0} などは引数で埋める）
 function T(key, ...args) {
   let s = LANG === 'en' && EN[key] != null ? EN[key] : key;
-  if (LANG === 'ja' && /^(slip|rank|top)\./.test(key)) s = JA_ONLY[key];
+  if (LANG === 'ja' && /^(slip|rank|top|store)\./.test(key)) s = JA_ONLY[key];
   args.forEach((v, k) => { s = s.split('{' + k + '}').join(v); });
   return s;
 }
@@ -83,6 +84,7 @@ const JA_ONLY = {
   'rank.legend': '🏆 伝説の行列店', 'rank.magazine': '🥇 雑誌に載る人気店', 'rank.local': '🥈 地元で評判の店',
   'rank.normal': '🥉 ふつうのラーメン屋', 'rank.trainee': '🍥 修行中の見習い',
   'top.small': '行列のできる', 'top.big': 'ラーメン店', 'top.lead': '注文どおりにラーメンを作って、行列をさばこう！',
+  'store.android': 'Android アプリ版（Google Play）',
 };
 function setLang(l) {
   LANG = l;
@@ -1673,6 +1675,10 @@ function showTitle() {
   const people = Bowl3D.ok
     ? [0, 4, 1, 8, 2].map((k, n) => `<img src="${Bowl3D.person(k, n === 2 ? 'happy' : n % 2 ? 'wait' : 'normal')}" alt="">`).join('')
     : '👨👩👴🧑👧';
+  let storeLink = '';
+  // web-only:start（Web 版だけ。アプリ用のビルドでは scripts/build-web.js がこの範囲を取り除く）
+  if (!NATIVE) storeLink = `<a class="store-link" href="https://play.google.com/store/apps/details?id=jp.techgym.ramen" target="_blank" rel="noopener">▶ ${T('store.android')}</a>`;
+  // web-only:end
   $('panel').className = 'panel top';
   $('panel').innerHTML = `
     <div class="top-noren"><span>ら</span><span>ー</span><span>め</span><span>ん</span></div>
@@ -1688,7 +1694,8 @@ function showTitle() {
     <p class="top-lead">${T('top.lead')}</p>
     ${best ? `<p class="top-best">${T('最高利益')} ${yen(best)}</p>` : ''}
     <button class="btn" id="startBtn">${T('開店！')}</button>
-    <button class="btn sub" id="helpBtn">${T('遊び方')}</button>`;
+    <button class="btn sub" id="helpBtn">${T('遊び方')}</button>
+    ${storeLink}`;
   document.querySelectorAll('.lang-btn').forEach((b) => b.addEventListener('click', () => { setLang(b.dataset.lang); showTitle(); }));
   $('startBtn').addEventListener('click', () => withInterstitial(startGame));
   $('helpBtn').addEventListener('click', showHelp);
