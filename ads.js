@@ -15,7 +15,7 @@ window.Ads = (() => {
       // 空の種類は本番ビルド（Google Play 用）では出さない
       production: {
         interstitial: 'ca-app-pub-6411535997477460/6214955835',
-        rewarded: 'ca-app-pub-6411535997477460/2015066388',
+        rewarded: 'ca-app-pub-6411535997477460/7670848591',
         banner: 'ca-app-pub-6411535997477460/8377425600',
       },
     },
